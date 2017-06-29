@@ -5,15 +5,19 @@
  */
 package inria.crawlerv2.driver;
 
+import inria.crawlerv2.constants.Constants;
 import java.net.URI;
 import java.util.NoSuchElementException;
 import java.util.Objects;
+import java.util.Random;
+import java.util.concurrent.TimeUnit;
+import java.util.logging.Logger;
 import org.openqa.selenium.By;
+import org.openqa.selenium.InvalidArgumentException;
 import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.Keys;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.firefox.FirefoxDriver;
-import org.openqa.selenium.interactions.Actions;
 import org.openqa.selenium.support.ui.ExpectedCondition;
 import org.openqa.selenium.support.ui.WebDriverWait;
 
@@ -23,16 +27,41 @@ import org.openqa.selenium.support.ui.WebDriverWait;
  */
 public class BasicFacebookPageDriver {
   
+  /**
+   * maximum delay between actions
+   */
+  private static final int MAX_LONG_WAIT_MILLIS = 1000*60*2; //2 minutes
+  
+  private static final int MAX_SHORT_WAIT_MILLIS = 1000*7; //7 seconds 
+  
+  private static final int MAX_WAIT_FOR_ELEM_SECONDS = 10; //10 seconds
+  
+  protected static final String FACEBOOK_URL = "https://www.facebook.com";
+  
+  private static final String URL_WITH_ID_TEMPLATE = "profile.php?id=";
+  
   protected final WebDriver driver;
+  
+  protected static final Logger LOG = Logger.getLogger(BasicFacebookPageDriver.class.getName()); 
   /**
    * URI of the page  which should be observed
    */
-  protected final URI target;
+  protected URI target;
+  
+  protected final Random random;
   
   public BasicFacebookPageDriver(URI target){
+    /**
+     * !Important
+     * set path to geckodriver. Needed for firefox driver to run
+     */
+    System.setProperty("webdriver.gecko.driver", Constants.GECKODRIVER_FILE_PATH);
     this.driver = new FirefoxDriver();
     this.target = target;
+    this.random = new Random();
+    setWaitForElementLoadEnabled(true);  
   }
+  
   /**
    * start crawling by getting FB page and logging in 
    * @param username
@@ -50,41 +79,23 @@ public class BasicFacebookPageDriver {
    */
   public boolean isLoggedIn() {
     try {
-      driver.findElement(By.xpath("//div[@data-click='profile_icon']/a"));
+      driver.findElement(By.xpath("//span[@class=\"_2md\"]"));
       return true;
     } catch (NoSuchElementException e) {}
     return false;
   }
   
   /**
-   * check whether this account is banned or not
-   * @param driver
+   * get the user id
+   * @param fbUrl - profile url
    * @return 
    */
-  public boolean isBanned(WebDriver driver) {
-    try {
-      driver.findElement(By.xpath("//div [@id=\"globalContainer\"]"
-              + "/div[@id=\"content\"]"
-              + "/div[@class=\"UIFullPage_Container\"]"
-              + "/div[@id=\"confirm_center\"]"
-              + "/div[@class=\"mvl ptm uiInterstitial uiInterstitialLarge uiBoxWhite\"]"
-              + "/div[@class=\"uiHeader uiHeaderBottomBorder mhl mts uiHeaderPage interstitialHeader\"]"
-              + "/div[@class=\"clearfix uiHeaderTop\"]"
-      ));
-      return true;
-    } catch (NoSuchElementException e) {}
-    try {
-        driver.findElement(By.xpath("//div [@id=\"globalContainer\"]"
-                + "/div[@id=\"content\"]"
-                + "/div[@class=\"mvl ptm uiInterstitial uiInterstitialLarge uiBoxWhite\"]"
-                + "/div[@class=\"uiHeader uiHeaderWithImage uiHeaderBottomBorder mhl mts uiHeaderPage interstitialHeader\"]"
-                + "/div[@class=\"clearfix uiHeaderTop\"]"
-        ));
-        return true;
-    } catch (NoSuchElementException e) {}
-    return false;
+  public String getUserID(String fbUrl) {
+    driver.get(fbUrl);
+    randomShortWait();
+    driver.findElement(By.xpath(".//div[@data-click='profile_icon']")).click();
+    return driver.getCurrentUrl().split("facebook.com/")[1];
   }
-  
   
   /**
    * insert username and password and login in facebook
@@ -92,11 +103,13 @@ public class BasicFacebookPageDriver {
    * @param password
    */
   protected void login(String username, String password){
-    String url = "https://www.facebook.com";
+    String url = FACEBOOK_URL;
     driver.get(url);
-
+    randomShortWait();
     driver.findElement(By.xpath("//input[@id='email']")).sendKeys(username);
+    randomShortWait();
     driver.findElement(By.xpath("//input[@id='pass']")).sendKeys(password);
+    randomShortWait();
     driver.findElement(By.xpath("//input[@id='pass']")).sendKeys(Keys.ENTER);
 
     waitForLoad();
@@ -136,22 +149,80 @@ public class BasicFacebookPageDriver {
   }
   
   /**
-   * zoom the page in
-   * @param n 
+   * wait about MAX_SHORT_WAIT_MILLIS but not less than 2sec
    */
-  protected void zoomIn(int n) {
-    for (int i = 0; i < n; i++) {
-      new Actions(driver).sendKeys(Keys.chord(Keys.CONTROL, Keys.ADD)).perform();
-    }
+  protected void randomShortWait(){
+    waitBetween(MAX_SHORT_WAIT_MILLIS>2000?2000:0, MAX_SHORT_WAIT_MILLIS);
+  }
+  
+  protected void waitBetween(int from,int to){
+    if(to-from<=0) throw new IllegalArgumentException("to < from");
+    try {
+      Thread.sleep(from+random.nextInt(to-from));
+    } catch (InterruptedException ex) {}
+  }
+ 
+  public URI getTarget() {
+    return target;
+  }
+
+  public void setTarget(URI target) {
+    this.target = target;
   }
   
   /**
-   * zoom the page out
-   * @param n 
+   * switch on or off the implicit waiting for the element,
+   * i.e. if enabled, driver will try to search the specific element in DOM during the time period
+   * @param enabled 
    */
-  protected void zoomOut(int n) {
-    for (int i = 0; i < n; i++) {
-      new Actions(driver).sendKeys(Keys.chord(Keys.CONTROL, Keys.SUBTRACT)).perform();
+  protected final void setWaitForElementLoadEnabled(boolean enabled){
+    driver.manage().timeouts().implicitlyWait(enabled?MAX_WAIT_FOR_ELEM_SECONDS:0, TimeUnit.SECONDS);
+  }
+  
+  /**
+   * load the url with the selected attributes
+   * @param attrs - url attributes i.e. {sk=about,section=contact-info}
+   * @param requiredArgs  - parts which should be present in url to be sure that it leads to the same resource as needed
+   * for example, in facebook after loading page the url can change, but it still contains the parts which inform that 
+   * the opened page is the same
+   */
+  protected void loadUrl(String[] attrs,String[] requiredArgs){
+    //if(!checkUrlInIdForm()) throw new InvalidArgumentException("target URI is malformed. Does not contain ID");
+    if(requiredArgs!=null&&requiredArgs.length>0)
+      for(String s:requiredArgs){
+        if(!urlContains(s))
+          driver.get(formUrl(attrs));   
+          return;
+      }
+    else {
+      String url = formUrl(attrs);
+      if(!driver.getCurrentUrl().equals(url)){
+        driver.get(url);
+      }
     }
   }
+  
+  protected boolean checkUrlInIdForm(){
+    if(target==null)
+      return false;
+    return target.toString().contains(URL_WITH_ID_TEMPLATE);
+  }
+  
+  private boolean urlContains(String token){
+    return driver.getCurrentUrl().contains(token);
+  }
+  
+  private String formUrl(String[] attrs){
+    String url  = target.toString();
+    if(attrs!=null){
+      for (int i=0;i<attrs.length;i++) {
+        url += ((i==0&&!checkUrlInIdForm())?"?":"&") + attrs[i];
+      }
+    }
+    return url;
+  }
+  
+  
+  
+  
 }
