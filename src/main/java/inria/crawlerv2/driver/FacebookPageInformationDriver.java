@@ -397,7 +397,6 @@ public class FacebookPageInformationDriver extends BasicFacebookPageDriver{
     return map;
   }
   
-  
   private String getEduWorkListItems(WebElement element){
     List<WebElement> elements;
     String attrValue = "";
@@ -420,15 +419,5 @@ public class FacebookPageInformationDriver extends BasicFacebookPageDriver{
     contactInfoCash = new HashMap<>();
     workEducationCash = new HashMap<>();
   }
-   
-  
-  
-  
-  
-
-  
-  
-
-  
-  
+ 
 }

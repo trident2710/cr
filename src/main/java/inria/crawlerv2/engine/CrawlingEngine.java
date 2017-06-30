@@ -7,13 +7,13 @@ package inria.crawlerv2.engine;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import inria.crawlerv2.constants.Constants;
 import inria.crawlerv2.engine.account.Account;
 import inria.crawlerv2.engine.account.AccountManager;
 import inria.crawlerv2.engine.account.AccountManagerImpl;
 import inria.crawlerv2.provider.AttributeName;
 import inria.crawlerv2.provider.AttributeProvider;
 import inria.crawlerv2.provider.FacebookAttributeProvider;
+import inria.crawlerv2.settings.Settings;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -31,10 +31,6 @@ import java.util.logging.Logger;
  */
 public class CrawlingEngine implements Runnable{
   
-  /**
-   * max delay between the actions
-   */
-  private static final Integer MAX_DELAY = 1000*10; //10 seconds
   /**
    * for generating random time intervals for the scrapping
    */
@@ -55,22 +51,26 @@ public class CrawlingEngine implements Runnable{
     fapi = new FacebookAttributeProvider(url);
     this.fc = fc;
     this.object = new JsonObject();
-    this.accountManager = new AccountManagerImpl(Constants.ACCOUNTS_FILE_PATH);
+    this.accountManager = new AccountManagerImpl(Settings.getInstance().getFacebookAccountsFilePath());
   }
 
   @Override
   public void run(){
-    
-    Account account = accountManager.getRandomWorkingAccount();
-    fapi.loginWithCredentials(account.getLogin(), account.getPassword());
+    try {
+      login();
+    } catch (NoWorkingAccountsException e) {
+      LOG.log(Level.SEVERE,"no working accounts left, impossible to proceed");
+      fc.onFinished(null);
+      return;
+    }
     
     List<AttributeName[]> names = getAttributesByPages();
     Collections.shuffle(names);
     for(AttributeName[] pages:names){
-      int delay = random.nextInt(MAX_DELAY);
+      int delay = random.nextInt(Settings.getInstance().getRequestDelayMillis());
+      LOG.log(Level.INFO,"sleeping for {0} milliseconds",delay);
+      
       try {
-        LOG.log(Level.INFO,"sleeping for {0} milliseconds",delay);
-
         List<AttributeName> page_names = Arrays.asList(pages);
         Collections.shuffle(page_names);
         for(AttributeName p:page_names){
@@ -95,6 +95,19 @@ public class CrawlingEngine implements Runnable{
       LOG.log(Level.WARNING, "unable to get the attribute of type {0}: {1}", new String[]{name.toString(),description});
     }
   };
+  
+  private void login() throws NoWorkingAccountsException{
+    if(accountManager.getWorkingAccounts().isEmpty())
+      throw new NoWorkingAccountsException();
+    
+    Account account = accountManager.getRandomWorkingAccount();
+    if(!fapi.loginWithCredentials(account.getLogin(), account.getPassword())){
+      account.setIsBanned(true);
+      accountManager.save();
+      login();
+    }
+  }
+  private class NoWorkingAccountsException extends Exception{}
   
   /**
    * certain attributes are located on the same pages

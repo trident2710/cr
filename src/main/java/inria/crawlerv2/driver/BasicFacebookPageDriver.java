@@ -5,7 +5,7 @@
  */
 package inria.crawlerv2.driver;
 
-import inria.crawlerv2.constants.Constants;
+import inria.crawlerv2.settings.Settings;
 import java.net.URI;
 import java.util.NoSuchElementException;
 import java.util.Objects;
@@ -13,7 +13,6 @@ import java.util.Random;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 import org.openqa.selenium.By;
-import org.openqa.selenium.InvalidArgumentException;
 import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.Keys;
 import org.openqa.selenium.WebDriver;
@@ -26,15 +25,6 @@ import org.openqa.selenium.support.ui.WebDriverWait;
  * @author adychka
  */
 public class BasicFacebookPageDriver {
-  
-  /**
-   * maximum delay between actions
-   */
-  private static final int MAX_LONG_WAIT_MILLIS = 1000*60*2; //2 minutes
-  
-  private static final int MAX_SHORT_WAIT_MILLIS = 1000*7; //7 seconds 
-  
-  private static final int MAX_WAIT_FOR_ELEM_SECONDS = 10; //10 seconds
   
   protected static final String FACEBOOK_URL = "https://www.facebook.com";
   
@@ -55,7 +45,7 @@ public class BasicFacebookPageDriver {
      * !Important
      * set path to geckodriver. Needed for firefox driver to run
      */
-    System.setProperty("webdriver.gecko.driver", Constants.GECKODRIVER_FILE_PATH);
+    System.setProperty("webdriver.gecko.driver", Settings.getInstance().getGeckodriverFilePath());
     this.driver = new FirefoxDriver();
     this.target = target;
     this.random = new Random();
@@ -70,7 +60,7 @@ public class BasicFacebookPageDriver {
    */
   public boolean start(String username, String password){
     login(username, password);
-    return isLoggedIn();
+    return (!isBanned())&&isLoggedIn();
   }
   
   /**
@@ -83,6 +73,11 @@ public class BasicFacebookPageDriver {
       return true;
     } catch (NoSuchElementException e) {}
     return false;
+  }
+  
+  public boolean isBanned() {
+    randomShortWait();
+    return driver.getCurrentUrl().contains("checkpoint");
   }
   
   /**
@@ -152,7 +147,7 @@ public class BasicFacebookPageDriver {
    * wait about MAX_SHORT_WAIT_MILLIS but not less than 2sec
    */
   protected void randomShortWait(){
-    waitBetween(MAX_SHORT_WAIT_MILLIS>2000?2000:0, MAX_SHORT_WAIT_MILLIS);
+    waitBetween(Settings.getInstance().getShortWaitMillis()>2000?2000:0, Settings.getInstance().getShortWaitMillis());
   }
   
   protected void waitBetween(int from,int to){
@@ -176,7 +171,7 @@ public class BasicFacebookPageDriver {
    * @param enabled 
    */
   protected final void setWaitForElementLoadEnabled(boolean enabled){
-    driver.manage().timeouts().implicitlyWait(enabled?MAX_WAIT_FOR_ELEM_SECONDS:0, TimeUnit.SECONDS);
+    driver.manage().timeouts().implicitlyWait(enabled?Settings.getInstance().getWaitForElemSec():0, TimeUnit.SECONDS);
   }
   
   /**

@@ -5,14 +5,14 @@
  */
 package inria.crawlerv2.engine.account;
 
-import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.stream.JsonWriter;
+import inria.crawlerv2.settings.Settings;
+import inria.crawlerv2.utils.FileUtils;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
@@ -90,8 +90,8 @@ public class AccountManagerImpl implements AccountManager{
     });
     JsonWriter writer;
     try {
-      writer = new JsonWriter(new FileWriter(file));
-      new GsonBuilder().create().toJson(array, writer);
+      FileUtils.writeObjectToFile("/",Settings.getInstance().getFacebookAccountsFilePath() , array);
+      loadAccounts();
     } catch (IOException ex) {
       LOG.log(Level.SEVERE, "unable to write to file", ex);
     }  
