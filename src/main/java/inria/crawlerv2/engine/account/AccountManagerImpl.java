@@ -9,7 +9,6 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.stream.JsonWriter;
-import inria.crawlerv2.settings.Settings;
 import inria.crawlerv2.utils.FileUtils;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
@@ -90,7 +89,7 @@ public class AccountManagerImpl implements AccountManager{
     });
     JsonWriter writer;
     try {
-      FileUtils.writeObjectToFile("/",Settings.getInstance().getFacebookAccountsFilePath() , array);
+      FileUtils.writeObjectToFile("/",file, array);
       loadAccounts();
     } catch (IOException ex) {
       LOG.log(Level.SEVERE, "unable to write to file", ex);

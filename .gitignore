@@ -1,2 +1,4 @@
 outputs
-target
+*~
+targect
+/target/

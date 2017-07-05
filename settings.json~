@@ -1,9 +1,1 @@
-{
-  "fb_accounts_path":"login_accounts.json",
-  "geckodriver_path":"geckodriver",
-  "output_data_path":"outputs/"
-  "long_wait_millis":10000,
-  "short_wait_millis":5000,
-  "wait_for_elem_load_sec":5,
-  "request_delay":20000
-}
+{"attributes":["FRIEND_IDS"],"longVaitMillis":10000,"shortWaitMillis":5000,"waitForElemLoadSec":5,"requestDelay":20000,"changeAccountAfter":10,"delayBeforeRunInMillis":0,"webDriverOption":"PHANTOM"}

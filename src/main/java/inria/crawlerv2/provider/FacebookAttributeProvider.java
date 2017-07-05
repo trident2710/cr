@@ -10,6 +10,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonPrimitive;
 import com.google.gson.JsonSyntaxException;
+import inria.crawlerv2.driver.BasicFacebookPageDriver;
 import inria.crawlerv2.driver.FacebookPageInformationDriver;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -40,15 +41,18 @@ public class FacebookAttributeProvider implements AttributeProvider{
   private URI url;
   private final FacebookPageInformationDriver fpid;
 
-  public FacebookAttributeProvider(URI url){
+  public FacebookAttributeProvider(URI url,FacebookPageInformationDriver driver){
     this.url = url;
-    this.fpid = new FacebookPageInformationDriver(url);
+    this.fpid = driver;
   }
-
+  
   @Override
   public void getAttribute(AttributeName name, AttributeCallback callback) {
     JsonElement response = null;
-    Object val = getAttributeByName(name);
+    Object val = null;
+    try {
+      val = getAttributeByName(name);
+    } catch (BasicFacebookPageDriver.PageNotFoundException|IllegalArgumentException e) {}
     
     if(val==null){
       callback.onError(name,"unable to get response");
@@ -169,5 +173,10 @@ public class FacebookAttributeProvider implements AttributeProvider{
       this.url = new URI(TARGET_WITH_ID_TEMPLATE+id);
       this.fpid.setTarget(url);
     } catch (URISyntaxException ex) {}
+  }
+
+  @Override
+  public void finishSession() {
+    fpid.finish();
   }
 }

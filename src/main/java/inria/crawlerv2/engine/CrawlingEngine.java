@@ -7,14 +7,12 @@ package inria.crawlerv2.engine;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import inria.crawlerv2.driver.FacebookPageInformationDriver;
 import inria.crawlerv2.engine.account.Account;
 import inria.crawlerv2.engine.account.AccountManager;
-import inria.crawlerv2.engine.account.AccountManagerImpl;
 import inria.crawlerv2.provider.AttributeName;
 import inria.crawlerv2.provider.AttributeProvider;
 import inria.crawlerv2.provider.FacebookAttributeProvider;
-import inria.crawlerv2.settings.Settings;
-import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -24,8 +22,8 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * The class which connects the real facebook crawler realisation with the main program
- * acts like adapter witch requests the attributes from the crawler driven, collects the results and returns to the 
+ * The class which connects the facebook crawler realisation with the main program
+ * acts like adapter witch requests the attributes from the crawler driver, collects the results and returns to the 
  * main flow.
  * @author adychka
  */
@@ -34,53 +32,94 @@ public class CrawlingEngine implements Runnable{
   /**
    * for generating random time intervals for the scrapping
    */
-  private final Random random;
+  private Random random;
   
-  private final FacebookAttributeProvider fapi;
+  private FacebookAttributeProvider fapi;
   
-  private final FinishCallback fc;
+  private FinishCallback fc;
   
   private static final Logger LOG = Logger.getLogger(CrawlingEngine.class.getName()); 
   
   private JsonObject object;
   
-  private final AccountManager accountManager;
+  private AccountManager accountManager;
   
-  public CrawlingEngine(URI url,FinishCallback fc){
+  private CrawlingEngineSettings settings;
+  
+  public CrawlingEngine(AccountManager accountManager,CrawlingEngineSettings settings,FinishCallback fc){
     random = new Random();
-    fapi = new FacebookAttributeProvider(url);
+    FacebookPageInformationDriver fpid = new FacebookPageInformationDriver(
+            settings.getTarget(), 
+            settings.getWebDriverOption(), 
+            settings.getWaitForElemLoadSec(), 
+            settings.getShortWaitMillis());
+    
+    fapi = new FacebookAttributeProvider(settings.getTarget(),fpid);
     this.fc = fc;
     this.object = new JsonObject();
-    this.accountManager = new AccountManagerImpl(Settings.getInstance().getFacebookAccountsFilePath());
+    this.accountManager = accountManager;
+    this.settings = settings;
   }
+  
+ 
 
   @Override
   public void run(){
-    try {
-      login();
-    } catch (NoWorkingAccountsException e) {
-      LOG.log(Level.SEVERE,"no working accounts left, impossible to proceed");
-      fc.onFinished(null);
-      return;
-    }
+    boolean useDefault = false;
     
-    List<AttributeName[]> names = getAttributesByPages();
-    Collections.shuffle(names);
-    for(AttributeName[] pages:names){
-      int delay = random.nextInt(Settings.getInstance().getRequestDelayMillis());
-      LOG.log(Level.INFO,"sleeping for {0} milliseconds",delay);
-      
+    if(settings.getSingleUsingAccount()!=null){
+      if(login(settings.getSingleUsingAccount()))
+        useDefault = true;
+      else{
+        useDefault = false;
+        LOG.log(Level.SEVERE,"unable to login with provided account");
+        finish(null);
+        return;  
+      }
+    } 
+    
+    if(!useDefault)
       try {
-        List<AttributeName> page_names = Arrays.asList(pages);
-        Collections.shuffle(page_names);
-        for(AttributeName p:page_names){
-          fapi.getAttribute(p, callback);
-        }
-
-        Thread.sleep(delay);
+        login();
+      } catch (NoWorkingAccountsException e) {
+        LOG.log(Level.SEVERE,"no working accounts left");
+        finish(null);
+        return;
+      }
+    
+    if(settings.getDelayBeforeRunInMillis()!=0){
+      LOG.log(Level.INFO,"explicitly waiting {0} millis");
+      try {
+        wait(settings.getDelayBeforeRunInMillis());
       } catch (InterruptedException ex) {}
     }
-    fc.onFinished(object);
+    
+    if(!Arrays.equals(settings.getAttributes(),AttributeName.values())){
+      crawlBlock(settings.getAttributes());
+    } else{
+      List<AttributeName[]> names = getAttributesByPages();
+      Collections.shuffle(names);
+      for(AttributeName[] block:names){
+        crawlBlock(block);
+      }
+    }
+    finish(object);
+  }
+  
+  private void crawlBlock(AttributeName[] block){
+    int delay = random.nextInt(settings.getRequestDelay());
+    LOG.log(Level.INFO,"sleeping for {0} milliseconds",delay);
+
+    try {
+      List<AttributeName> page_names = Arrays.asList(block);
+      Collections.shuffle(page_names);
+      for(AttributeName p:page_names){
+        LOG.log(Level.INFO,"crawling {0}:",p.getName());
+        fapi.getAttribute(p, callback);
+      }
+
+      Thread.sleep(delay);
+    } catch (InterruptedException ex) {}
   }
   
   private final AttributeProvider.AttributeCallback callback = new AttributeProvider.AttributeCallback() {
@@ -100,14 +139,31 @@ public class CrawlingEngine implements Runnable{
     if(accountManager.getWorkingAccounts().isEmpty())
       throw new NoWorkingAccountsException();
     
-    Account account = accountManager.getRandomWorkingAccount();
-    if(!fapi.loginWithCredentials(account.getLogin(), account.getPassword())){
-      account.setIsBanned(true);
-      accountManager.save();
+    Account acc = accountManager.getRandomWorkingAccount();
+    if(!login(acc)){
       login();
     }
   }
-  private class NoWorkingAccountsException extends Exception{}
+  
+  private boolean login(Account acc){
+    if(!fapi.loginWithCredentials(acc.getLogin(), acc.getPassword())){
+      LOG.log(Level.WARNING, "unable to login");
+      acc.setIsBanned(true);
+      accountManager.save();
+      return false;
+    }
+    return true;
+  }
+  
+  private void finish(JsonObject object){
+    if(object==null){
+      LOG.log(Level.SEVERE,"impossible to collect data");
+    }
+    fapi.finishSession();
+    fc.onFinished(object);
+  }
+  
+  private class NoWorkingAccountsException extends Exception{};
   
   /**
    * certain attributes are located on the same pages

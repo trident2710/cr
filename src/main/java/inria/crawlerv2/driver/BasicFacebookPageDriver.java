@@ -5,7 +5,6 @@
  */
 package inria.crawlerv2.driver;
 
-import inria.crawlerv2.settings.Settings;
 import java.net.URI;
 import java.util.NoSuchElementException;
 import java.util.Objects;
@@ -13,10 +12,14 @@ import java.util.Random;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 import org.openqa.selenium.By;
+import org.openqa.selenium.Dimension;
 import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.Keys;
+import org.openqa.selenium.Platform;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.firefox.FirefoxDriver;
+import org.openqa.selenium.phantomjs.PhantomJSDriver;
+import org.openqa.selenium.remote.DesiredCapabilities;
 import org.openqa.selenium.support.ui.ExpectedCondition;
 import org.openqa.selenium.support.ui.WebDriverWait;
 
@@ -28,9 +31,21 @@ public class BasicFacebookPageDriver {
   
   protected static final String FACEBOOK_URL = "https://www.facebook.com";
   
+  protected static final String USER_AGENT = "Mozilla/5.0 (Windows NT 6.0) AppleWebKit/535.1 (KHTML, like Gecko) Chrome/13.0.782.41 Safari/535.1";
+  
   private static final String URL_WITH_ID_TEMPLATE = "profile.php?id=";
   
-  protected final WebDriver driver;
+  /**
+   * system property for providing the path to geckodriver
+   */
+  private static final String GECKODRIVER_PROPERTY = "webdriver.gecko.driver";
+  
+  /**
+   * system property for providing the path to phantomjs
+   */
+  private static final String PHANTOMJS_PROPERTY = "phantomjs.binary.path";
+  
+  protected WebDriver driver;
   
   protected static final Logger LOG = Logger.getLogger(BasicFacebookPageDriver.class.getName()); 
   /**
@@ -40,18 +55,28 @@ public class BasicFacebookPageDriver {
   
   protected final Random random;
   
-  public BasicFacebookPageDriver(URI target){
-    /**
-     * !Important
-     * set path to geckodriver. Needed for firefox driver to run
-     */
-    System.setProperty("webdriver.gecko.driver", Settings.getInstance().getGeckodriverFilePath());
-    this.driver = new FirefoxDriver();
+  private final WebDriverOption wdo;
+  
+  /**
+   * how many seconds driver will wait for element if it cannot be found
+   */
+  private final int waitElemSec;
+  
+  /**
+   * how many millis driver will wait between performing primitive actions
+   */
+  private final int shortWaitMillis;
+  
+  
+  public BasicFacebookPageDriver(URI target,WebDriverOption option,int waitElemSec,int shortWaitMillis){
+    checkSystemProperty(option); 
+    this.wdo = option;
     this.target = target;
     this.random = new Random();
-    setWaitForElementLoadEnabled(true);  
+    this.waitElemSec = waitElemSec;
+    this.shortWaitMillis = shortWaitMillis;
   }
-  
+   
   /**
    * start crawling by getting FB page and logging in 
    * @param username
@@ -59,6 +84,21 @@ public class BasicFacebookPageDriver {
    * @return 
    */
   public boolean start(String username, String password){
+    switch(wdo){
+      case GECKO:
+        this.driver = new FirefoxDriver();
+        break;
+      case PHANTOM:
+        this.driver = new PhantomJSDriver(createPhantomDesiredCapabilities());
+        break;
+      default:
+        throw new RuntimeException("not supported webdriver option");
+    }
+    
+    driver.manage().window().setSize(new Dimension(1024,768));
+    driver.manage().deleteAllCookies();
+    setWaitForElementLoadEnabled(true);
+    
     login(username, password);
     return (!isBanned())&&isLoggedIn();
   }
@@ -69,7 +109,7 @@ public class BasicFacebookPageDriver {
    */
   public boolean isLoggedIn() {
     try {
-      driver.findElement(By.xpath("//span[@class=\"_2md\"]"));
+      driver.findElement(By.xpath("//a[@href=\"https://www.facebook.com/?ref=logo\"]"));
       return true;
     } catch (NoSuchElementException e) {}
     return false;
@@ -101,11 +141,11 @@ public class BasicFacebookPageDriver {
     String url = FACEBOOK_URL;
     driver.get(url);
     randomShortWait();
-    driver.findElement(By.xpath("//input[@id='email']")).sendKeys(username);
+    driver.findElement(By.xpath("//input[@name='email']")).sendKeys(username);
     randomShortWait();
-    driver.findElement(By.xpath("//input[@id='pass']")).sendKeys(password);
+    driver.findElement(By.xpath("//input[@name='pass']")).sendKeys(password);
     randomShortWait();
-    driver.findElement(By.xpath("//input[@id='pass']")).sendKeys(Keys.ENTER);
+    driver.findElement(By.xpath("//input[@name='pass']")).sendKeys(Keys.ENTER);
 
     waitForLoad();
   }
@@ -147,7 +187,7 @@ public class BasicFacebookPageDriver {
    * wait about MAX_SHORT_WAIT_MILLIS but not less than 2sec
    */
   protected void randomShortWait(){
-    waitBetween(Settings.getInstance().getShortWaitMillis()>2000?2000:0, Settings.getInstance().getShortWaitMillis());
+    waitBetween(shortWaitMillis>2000?2000:0, shortWaitMillis);
   }
   
   protected void waitBetween(int from,int to){
@@ -165,13 +205,21 @@ public class BasicFacebookPageDriver {
     this.target = target;
   }
   
+  public void finish(){
+    if(driver!=null){
+      driver.manage().deleteAllCookies();
+      driver.close();
+    }
+
+  }
+  
   /**
    * switch on or off the implicit waiting for the element,
    * i.e. if enabled, driver will try to search the specific element in DOM during the time period
    * @param enabled 
    */
   protected final void setWaitForElementLoadEnabled(boolean enabled){
-    driver.manage().timeouts().implicitlyWait(enabled?Settings.getInstance().getWaitForElemSec():0, TimeUnit.SECONDS);
+    driver.manage().timeouts().implicitlyWait(enabled?waitElemSec:0, TimeUnit.SECONDS);
   }
   
   /**
@@ -182,7 +230,6 @@ public class BasicFacebookPageDriver {
    * the opened page is the same
    */
   protected void loadUrl(String[] attrs,String[] requiredArgs){
-    //if(!checkUrlInIdForm()) throw new InvalidArgumentException("target URI is malformed. Does not contain ID");
     if(requiredArgs!=null&&requiredArgs.length>0)
       for(String s:requiredArgs){
         if(!urlContains(s))
@@ -217,7 +264,43 @@ public class BasicFacebookPageDriver {
     return url;
   }
   
+  private void ensurePageExists(){
+    try {
+      driver.findElement(By.xpath("//*[text()[contains(.,'The link you followed may be broken, or the page may have been removed.')]]"));
+      throw new PageNotFoundException();
+    } catch (NoSuchElementException e) {}
+  }
+  
+  private DesiredCapabilities createPhantomDesiredCapabilities(){
+    DesiredCapabilities dc = new DesiredCapabilities();
+    dc.setJavascriptEnabled(true);
+    dc.setBrowserName("Mozilla");
+    dc.setPlatform(Platform.LINUX);
+    dc.setVersion("48");
+    dc.setCapability("phantomjs.page.settings.userAgent",USER_AGENT);
+    return dc;
+  }
+  
+  private void checkSystemProperty(WebDriverOption option) throws RuntimeException{
+    switch(option){
+      case GECKO:
+        if(System.getProperty(GECKODRIVER_PROPERTY)==null||System.getProperty(GECKODRIVER_PROPERTY).isEmpty())
+          throw new RuntimeException(GECKODRIVER_PROPERTY+" system property was not set, impossible to proceed");
+        break;
+      case PHANTOM:
+        if(System.getProperty(PHANTOMJS_PROPERTY)==null||System.getProperty(PHANTOMJS_PROPERTY).isEmpty())
+          throw new RuntimeException(PHANTOMJS_PROPERTY +" system property was not set, impossible to proceed");
+        break;
+      default:
+        throw new RuntimeException("not supported webdriver option");
+    }
+  }
   
   
+  public static class PageNotFoundException extends RuntimeException{
+    private PageNotFoundException(){
+      super("unable to load the page, incorrect url");
+    }
+  }
   
 }

@@ -27,8 +27,8 @@ public class FacebookPageInformationDriver extends BasicFacebookPageDriver{
   private Map<String,String> workEducationCash;
   
 
-  public FacebookPageInformationDriver(URI target) {
-    super(target);
+  public FacebookPageInformationDriver(URI target,WebDriverOption option,int waitElemSec,int shortWaitMillis) {
+    super(target,option,waitElemSec,shortWaitMillis);
     initCash();
   }
   
@@ -213,6 +213,7 @@ public class FacebookPageInformationDriver extends BasicFacebookPageDriver{
     loadUrl(new String[]{"sk=about","section=contact-info"}, new String[]{"contact-info"});
     
     try {
+      setWaitForElementLoadEnabled(false);
       Map<String,String> attributes = new HashMap<>(); 
       List<WebElement> elements;
       elements = driver.findElements(By.xpath(".//*[@id='pagelet_contact']/div/div/ul/li"));
@@ -238,11 +239,15 @@ public class FacebookPageInformationDriver extends BasicFacebookPageDriver{
             LOG.log(Level.WARNING,"unable to get attribute from contact information");
         }   
       }
+      
       contactInfoCash = attributes;
+      setWaitForElementLoadEnabled(true);
       return attributes;
     } catch (Exception e) {
+      
       LOG.log(Level.WARNING,"unable to contact information");
     }
+    setWaitForElementLoadEnabled(true);
     return null;
   }
   
@@ -344,13 +349,14 @@ public class FacebookPageInformationDriver extends BasicFacebookPageDriver{
   
   private Map<String,String> getBasicInformation(){
     loadUrl(new String[]{"sk=about","section=contact-info"}, new String[]{"contact-info"});
-    
+    setWaitForElementLoadEnabled(false);
     Map<String,String> map = new HashMap<>();
     List<WebElement> elements;
     try {
       elements = driver.findElements(By.xpath(".//div[@id='pagelet_basic']/div/ul/li"));
     } catch (Exception e) {
       LOG.log(Level.WARNING,"unable to find .//div[@id='pagelet_basic']/div/ul/li");
+      setWaitForElementLoadEnabled(true);
       return null;
     }
     
@@ -368,12 +374,13 @@ public class FacebookPageInformationDriver extends BasicFacebookPageDriver{
       }   
     }
     basicInfoCash = map;
+    setWaitForElementLoadEnabled(true);
     return map;
   }
   
   private Map<String,String> getWorkEducationInformation(){
     loadUrl(new String[]{"sk=about","section=education"}, new String[]{"education"});
-    
+    setWaitForElementLoadEnabled(false);
     Map<String,String> map = new HashMap<>();
     List<WebElement> elements;
     try {
@@ -382,7 +389,6 @@ public class FacebookPageInformationDriver extends BasicFacebookPageDriver{
       if(val!=null)map.put("work", val);
     } catch (Exception e) {
       LOG.log(Level.WARNING,"unable to find work pagelet");
-      return null;
     }
     try {
       WebElement edu = driver.findElement(By.xpath(".//div[@id='pagelet_eduwork']//div[@data-pnref='edu']/ul"));
@@ -390,9 +396,9 @@ public class FacebookPageInformationDriver extends BasicFacebookPageDriver{
       if(val!=null)map.put("education", val);
     } catch (Exception e) {
       LOG.log(Level.WARNING,"unable to find work pagelet");
-      return null;
     }
-    
+    setWaitForElementLoadEnabled(true);
+    if(map.isEmpty()) return null;
     workEducationCash = map;
     return map;
   }

@@ -33,6 +33,11 @@ public interface AttributeProvider {
      */
     void transformTargetWithId(String id);
     
+    /**
+     * finish current attribute collecting session
+     */
+    void finishSession();
+    
     
     /**
     * callback for collecting the attribute from facebook profile
@@ -52,6 +57,7 @@ public interface AttributeProvider {
      * @param name
      */
     void onError(AttributeName name,String description);
+    
   }
     
 }
