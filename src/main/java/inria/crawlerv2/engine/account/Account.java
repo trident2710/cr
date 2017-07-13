@@ -11,45 +11,45 @@ import org.apache.commons.lang.builder.HashCodeBuilder;
 
 /**
  * represents facebook account used for scrapping
+ *
  * @author adychka
  */
 public class Account {
-  private final String login;
-  private final String password;
-  private Boolean isBanned;
 
-  public Account(String login, String password, Boolean isBanned) {
-    this.login = login;
-    this.password = password;
-    this.isBanned = isBanned;
-  }
+    private final String login;
+    private final String password;
+    private Boolean isBanned;
 
-  public String getLogin() {
-    return login;
-  }
+    public Account(String login, String password, Boolean isBanned) {
+        this.login = login;
+        this.password = password;
+        this.isBanned = isBanned;
+    }
 
-  public String getPassword() {
-    return password;
-  }
+    public String getLogin() {
+        return login;
+    }
 
-  public boolean isBanned() {
-    return isBanned;
-  }
-  public void setIsBanned(Boolean isBanned){
-    this.isBanned = isBanned;
-  }
-  
-  
-  
-  @Override
-  public boolean equals(Object other) {
-    return EqualsBuilder.reflectionEquals(this, other,Arrays.asList(this.login));
-  }
+    public String getPassword() {
+        return password;
+    }
 
-  @Override
-  public int hashCode() {
-    return HashCodeBuilder.reflectionHashCode(this,Arrays.asList(this.login));
-  }
-  
-  
+    public boolean isBanned() {
+        return isBanned;
+    }
+
+    public void setIsBanned(Boolean isBanned) {
+        this.isBanned = isBanned;
+    }
+
+    @Override
+    public boolean equals(Object other) {
+        return EqualsBuilder.reflectionEquals(this, other, Arrays.asList(this.login));
+    }
+
+    @Override
+    public int hashCode() {
+        return HashCodeBuilder.reflectionHashCode(this, Arrays.asList(this.login));
+    }
+
 }

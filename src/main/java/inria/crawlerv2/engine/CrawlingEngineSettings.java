@@ -14,174 +14,190 @@ import inria.crawlerv2.provider.AttributeName;
  * @author adychka
  */
 public class CrawlingEngineSettings {
-   
-  /**
-   * which attributes crawler should collect
-   */
-  AttributeName[] attributes = AttributeName.values();
-  
-  /**
-   * the upper border for the long delay while crawling attribute
-   */
-  protected int longWaitMillis = 10000;
-  
-  /**
-   * the upper border for the short delay while crawling attribute
-   */
-  protected int shortWaitMillis = 5000;
-  
-  /**
-   * how much seconds should selenium retry if element is not appearing in HTML 
-   */
-  protected int waitForElemLoadSec = 5;
-  
-  /**
-   * the upper border for the delay between crawling the attributes
-   * needed to simulate human behavior
-   */
-  protected int requestDelay = 20000;
-  
-  /**
-   * change login account after this number of crawlings
-   */
-  protected int changeAccountAfter = 10;
-  
-  /**
-   * explicit wait before start crawling
-   */
-  protected int delayBeforeRunInMillis = 0;
-  
-  /**
-   * maximum amount of friends to collect for current profile
-   */
-  protected int maxFriendsToCollect = 1000;
-   
-  /**
-   * PHANTOM - to run silently, 
-   * GECKO to run in visual mode
-   */
-  protected WebDriverOption webDriverOption = WebDriverOption.PHANTOM;
 
-  AttributeName[] getAttributes() {
-    return attributes;
-  }
+    /**
+     * which attributes crawler should collect
+     */
+    AttributeName[] attributes = AttributeName.values();
 
-  public int getLongWaitMillis() {
-    return longWaitMillis;
-  }
+    /**
+     * the upper border for the long delay while crawling attribute
+     */
+    protected int longWaitMillis = 10000;
 
-  public int getShortWaitMillis() {
-    return shortWaitMillis;
-  }
+    /**
+     * the upper border for the short delay while crawling attribute
+     */
+    protected int shortWaitMillis = 5000;
 
-  public int getWaitForElemLoadSec() {
-    return waitForElemLoadSec;
-  }
+    /**
+     * how much seconds should selenium retry if element is not appearing in
+     * HTML
+     */
+    protected int waitForElemLoadSec = 5;
 
-  public int getRequestDelay() {
-    return requestDelay;
-  }
+    /**
+     * the upper border for the delay between crawling the attributes needed to
+     * simulate human behavior
+     */
+    protected int requestDelay = 20000;
 
-  public int getChangeAccountAfter() {
-    return changeAccountAfter;
-  }
+    /**
+     * change login account after this number of crawlings
+     */
+    protected int changeAccountAfter = 10;
 
-  public int getDelayBeforeRunInMillis() {
-    return delayBeforeRunInMillis;
-  }
+    /**
+     * explicit wait before start crawling
+     */
+    protected int delayBeforeRunInMillis = 0;
 
-  public WebDriverOption getWebDriverOption() {
-    return webDriverOption;
-  }
+    /**
+     * maximum amount of friends to collect for current profile
+     */
+    protected int maxFriendsToCollect = 10000;
 
-  public int getMaxFriendsToCollect() {
-      return maxFriendsToCollect;
-  }
-  
-  
-  
-  public static Builder getStaticBuilder(){
-    return new CrawlingEngineSettings().new Builder();
-  }
-  
-  public Builder getBuilder(){
-    return this.new Builder();
-  }
-  
-  
-  public void check(){
-    if(attributes == null || attributes.length==0)
-      throw new RuntimeException("wrong attributes value");
-    if(longWaitMillis <0)
-      throw new RuntimeException("wrong longVaitMillis value");
-    if(shortWaitMillis <0)
-      throw new RuntimeException("wrong shortVaitMillis value");
-    if(waitForElemLoadSec <0)
-      throw new RuntimeException("wrong waitForElemLoadSec value");
-    if(requestDelay <0)
-      throw new RuntimeException("wrong requestDelay value");
-    if(changeAccountAfter <0)
-      throw new RuntimeException("wrong changeAccountAfter value");
-    if(delayBeforeRunInMillis <0)
-      throw new RuntimeException("wrong delayBeforeRunInMillis value");
-    if(maxFriendsToCollect<1)
-      throw new RuntimeException("wrong maxFriendsToCollect value");
-    if(webDriverOption == null)
-      throw new RuntimeException("wrong webDriverOption value");
-  }
-  
-  @JsonIgnoreType
-  public class Builder{
-    
-    public Builder setCollectAttributes(AttributeName[] attributes){
-      CrawlingEngineSettings.this.attributes = attributes;
-      return this;
+    /**
+     * stop scrolling down the list of friends after this amount
+     */
+    protected int maxFriendsToScroll = 10000;
+
+    /**
+     * PHANTOM - to run silently, GECKO to run in visual mode
+     */
+    protected WebDriverOption webDriverOption = WebDriverOption.PHANTOM;
+
+    AttributeName[] getAttributes() {
+        return attributes;
     }
-    
-    public Builder setLongWaitMillis(int longWaitMillis){
-      CrawlingEngineSettings.this.longWaitMillis = longWaitMillis;
-      return this;
+
+    public int getLongWaitMillis() {
+        return longWaitMillis;
     }
-    
-    public Builder setShortWaitMillis(int shortWaitMillis){
-      CrawlingEngineSettings.this.shortWaitMillis = shortWaitMillis;
-      return this;
+
+    public int getShortWaitMillis() {
+        return shortWaitMillis;
     }
-    
-    public Builder setWaitForElemLoadSec(int waitForElemLoadSec){
-      CrawlingEngineSettings.this.waitForElemLoadSec = waitForElemLoadSec;
-      return this;
+
+    public int getWaitForElemLoadSec() {
+        return waitForElemLoadSec;
     }
-    
-    public Builder setRequestDelay(int requestDelay){
-      CrawlingEngineSettings.this.requestDelay = requestDelay;
-      return this;
+
+    public int getRequestDelay() {
+        return requestDelay;
     }
-    
-    public Builder setChangeAccountAfter(int changeAccountAfter){
-      CrawlingEngineSettings.this.changeAccountAfter = changeAccountAfter;
-      return this;
+
+    public int getChangeAccountAfter() {
+        return changeAccountAfter;
     }
-    
-    public Builder setDelayBeforeRunInMillis(int delayBeforeRunInMillis){
-      CrawlingEngineSettings.this.delayBeforeRunInMillis = delayBeforeRunInMillis;
-      return this;
+
+    public int getDelayBeforeRunInMillis() {
+        return delayBeforeRunInMillis;
     }
-    
-    public Builder setMaxFriendsToCollect(int maxFriendsToCollect){
-      CrawlingEngineSettings.this.maxFriendsToCollect = maxFriendsToCollect;
-      return this;
+
+    public WebDriverOption getWebDriverOption() {
+        return webDriverOption;
     }
-    
-    public Builder setWebDriverOption(WebDriverOption option){
-      CrawlingEngineSettings.this.webDriverOption = option;
-      return this;
+
+    public int getMaxFriendsToCollect() {
+        return maxFriendsToCollect;
     }
-    
-    public CrawlingEngineSettings build(){
-      CrawlingEngineSettings.this.check();
-      return CrawlingEngineSettings.this;
+
+    public int getMaxFriendsToScroll() {
+        return maxFriendsToScroll;
     }
-  }
-  
+
+    public static Builder getStaticBuilder() {
+        return new CrawlingEngineSettings().new Builder();
+    }
+
+    public Builder getBuilder() {
+        return this.new Builder();
+    }
+
+    public void check() {
+        if (attributes == null || attributes.length == 0) {
+            throw new RuntimeException("wrong attributes value");
+        }
+        if (longWaitMillis < 0) {
+            throw new RuntimeException("wrong longVaitMillis value");
+        }
+        if (shortWaitMillis < 0) {
+            throw new RuntimeException("wrong shortVaitMillis value");
+        }
+        if (waitForElemLoadSec < 0) {
+            throw new RuntimeException("wrong waitForElemLoadSec value");
+        }
+        if (requestDelay < 0) {
+            throw new RuntimeException("wrong requestDelay value");
+        }
+        if (changeAccountAfter < 0) {
+            throw new RuntimeException("wrong changeAccountAfter value");
+        }
+        if (delayBeforeRunInMillis < 0) {
+            throw new RuntimeException("wrong delayBeforeRunInMillis value");
+        }
+        if (maxFriendsToCollect < 1) {
+            throw new RuntimeException("wrong maxFriendsToCollect value");
+        }
+        if (webDriverOption == null) {
+            throw new RuntimeException("wrong webDriverOption value");
+        }
+
+    }
+
+    @JsonIgnoreType
+    public class Builder {
+
+        public Builder setCollectAttributes(AttributeName[] attributes) {
+            CrawlingEngineSettings.this.attributes = attributes;
+            return this;
+        }
+
+        public Builder setLongWaitMillis(int longWaitMillis) {
+            CrawlingEngineSettings.this.longWaitMillis = longWaitMillis;
+            return this;
+        }
+
+        public Builder setShortWaitMillis(int shortWaitMillis) {
+            CrawlingEngineSettings.this.shortWaitMillis = shortWaitMillis;
+            return this;
+        }
+
+        public Builder setWaitForElemLoadSec(int waitForElemLoadSec) {
+            CrawlingEngineSettings.this.waitForElemLoadSec = waitForElemLoadSec;
+            return this;
+        }
+
+        public Builder setRequestDelay(int requestDelay) {
+            CrawlingEngineSettings.this.requestDelay = requestDelay;
+            return this;
+        }
+
+        public Builder setChangeAccountAfter(int changeAccountAfter) {
+            CrawlingEngineSettings.this.changeAccountAfter = changeAccountAfter;
+            return this;
+        }
+
+        public Builder setDelayBeforeRunInMillis(int delayBeforeRunInMillis) {
+            CrawlingEngineSettings.this.delayBeforeRunInMillis = delayBeforeRunInMillis;
+            return this;
+        }
+
+        public Builder setMaxFriendsToCollect(int maxFriendsToCollect) {
+            CrawlingEngineSettings.this.maxFriendsToCollect = maxFriendsToCollect;
+            return this;
+        }
+
+        public Builder setWebDriverOption(WebDriverOption option) {
+            CrawlingEngineSettings.this.webDriverOption = option;
+            return this;
+        }
+
+        public CrawlingEngineSettings build() {
+            CrawlingEngineSettings.this.check();
+            return CrawlingEngineSettings.this;
+        }
+    }
+
 }

@@ -8,16 +8,23 @@ package inria.crawlerv2.engine.account;
 import java.util.List;
 
 /**
- * defines the methods for interaction with 
- * the list of facebook accounts
+ * defines the methods for interaction with the list of facebook accounts
+ *
  * @author adychka
  */
 public interface AccountManager {
-  List<Account> getAllAccounts();
-  List<Account> getBannedAccounts();
-  List<Account> getWorkingAccounts();
-  Account getRandomWorkingAccount();
-  Account addAccount(String login,String password);
-  void removeAccount(Account account);
-  void save();
+
+    List<Account> getAllAccounts();
+
+    List<Account> getBannedAccounts();
+
+    List<Account> getWorkingAccounts();
+
+    Account getRandomWorkingAccount();
+
+    Account addAccount(String login, String password);
+
+    void removeAccount(Account account);
+
+    void save();
 }

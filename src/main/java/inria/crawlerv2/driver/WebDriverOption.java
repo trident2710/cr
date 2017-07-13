@@ -5,18 +5,17 @@
  */
 package inria.crawlerv2.driver;
 
-
 /**
- * @author adychka
- * defines the variants of webdriver which can be used to crawl the page
+ * @author adychka defines the variants of webdriver which can be used to crawl
+ * the page
  */
-public enum WebDriverOption{
-  /**
-   * will crawl in visual mode. i.e. the prosess will be visible
-   */
-  GECKO,
-  /**
-   * will crawl in silent mode. i.e. the process will be not visible
-   */
-  PHANTOM
+public enum WebDriverOption {
+    /**
+     * will crawl in visual mode. i.e. the prosess will be visible
+     */
+    GECKO,
+    /**
+     * will crawl in silent mode. i.e. the process will be not visible
+     */
+    PHANTOM
 }

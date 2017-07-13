@@ -8,56 +8,64 @@ package inria.crawlerv2.provider;
 import com.google.gson.JsonElement;
 
 /**
- * declares the requirement for the profile attribute provider 
+ * declares the requirement for the profile attribute provider
+ *
  * @author adychka
  */
 public interface AttributeProvider {
-  
+
     /**
      * login to facebook with specified credentials
+     *
      * @param username
-     * @param password 
+     * @param password
      * @return true if successfully logged in
      */
-    boolean loginWithCredentials(String username,String password);
+    boolean loginWithCredentials(String username, String password);
+
     /**
      * get the attribute from the facebook account
+     *
      * @param name - which attribute should be collected
      * @param callback
      */
-    void getAttribute(AttributeName name,AttributeCallback callback);
-    
+    void getAttribute(AttributeName name, AttributeCallback callback);
+
     /**
      * change the target url to the form: facebook.com/profile.php?id=123124
-     * @param id 
+     *
+     * @param id
      */
     void transformTargetWithId(String id);
-    
+
     /**
      * finish current attribute collecting session
      */
     void finishSession();
-    
-    
+
     /**
-    * callback for collecting the attribute from facebook profile
-    * @author adychka
-    */
-  public static interface AttributeCallback {
-    /**
-     * invoked if such attribute was successfully collected
-     * @param name
-     * @param value 
+     * callback for collecting the attribute from facebook profile
+     *
+     * @author adychka
      */
-    void onAttributeCollected(AttributeName name,JsonElement value);
-    
-    /**
-     * invoked if the error occured while collecting the attribute
-     * @param description - error description
-     * @param name
-     */
-    void onError(AttributeName name,String description);
-    
-  }
-    
+    public static interface AttributeCallback {
+
+        /**
+         * invoked if such attribute was successfully collected
+         *
+         * @param name
+         * @param value
+         */
+        void onAttributeCollected(AttributeName name, JsonElement value);
+
+        /**
+         * invoked if the error occured while collecting the attribute
+         *
+         * @param description - error description
+         * @param name
+         */
+        void onError(AttributeName name, String description);
+
+    }
+
 }

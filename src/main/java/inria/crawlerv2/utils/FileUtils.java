@@ -15,12 +15,13 @@ import java.io.IOException;
  * @author adychka
  */
 public class FileUtils {
-  public static void writeObjectToFile(String directory,String fileName,Object object) throws FileNotFoundException, IOException{
-    File file = new File(directory);
-    file.mkdir();
-    FileOutputStream outputStream;
-    outputStream = new FileOutputStream(fileName);
-    outputStream.write(object.toString().getBytes());
-    outputStream.close();
-  }
+
+    public static void writeObjectToFile(String directory, String fileName, Object object) throws FileNotFoundException, IOException {
+        File file = new File(directory);
+        file.mkdir();
+        FileOutputStream outputStream;
+        outputStream = new FileOutputStream(fileName);
+        outputStream.write(object.toString().getBytes());
+        outputStream.close();
+    }
 }

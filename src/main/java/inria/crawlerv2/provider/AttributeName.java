@@ -6,8 +6,9 @@
 package inria.crawlerv2.provider;
 
 /**
- * declares the requirement for the crawler, 
- * which fields it should collect from the account
+ * declares the requirement for the crawler, which fields it should collect from
+ * the account
+ *
  * @author adychka
  */
 public enum AttributeName {
@@ -28,7 +29,7 @@ public enum AttributeName {
     WORK_IDS,
     EDUCATION_IDS;
 
-    public String getName(){
-      return this.name().toLowerCase();
+    public String getName() {
+        return this.name().toLowerCase();
     }
 }
