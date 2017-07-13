@@ -13,6 +13,7 @@ import inria.crawlerv2.engine.account.AccountManager;
 import inria.crawlerv2.provider.AttributeName;
 import inria.crawlerv2.provider.AttributeProvider;
 import inria.crawlerv2.provider.FacebookAttributeProvider;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -46,29 +47,38 @@ public class CrawlingEngine implements Runnable{
   
   private CrawlingEngineSettings settings;
   
-  public CrawlingEngine(AccountManager accountManager,CrawlingEngineSettings settings,FinishCallback fc){
+  private Account singleUsingAccount;
+  
+  public CrawlingEngine(AccountManager accountManager,CrawlingEngineSettings settings,URI target,FinishCallback fc){
     random = new Random();
     FacebookPageInformationDriver fpid = new FacebookPageInformationDriver(
-            settings.getTarget(), 
+            target, 
             settings.getWebDriverOption(), 
             settings.getWaitForElemLoadSec(), 
             settings.getShortWaitMillis());
     
-    fapi = new FacebookAttributeProvider(settings.getTarget(),fpid);
+    fapi = new FacebookAttributeProvider(target,fpid);
     this.fc = fc;
     this.object = new JsonObject();
     this.accountManager = accountManager;
     this.settings = settings;
   }
   
- 
-
+  public CrawlingEngine(AccountManager accountManager,CrawlingEngineSettings settings,URI target,Account singleUsingAccount,FinishCallback fc){
+    this(accountManager, settings, target, fc);
+    this.singleUsingAccount = singleUsingAccount;
+  }
+  
+  public CrawlingEngine(CrawlingEngineSettings settings,URI target,Account singleUsingAccount,FinishCallback fc){
+      this(null, settings, target, singleUsingAccount, fc);
+  }
+  
   @Override
   public void run(){
     boolean useDefault = false;
     
-    if(settings.getSingleUsingAccount()!=null){
-      if(login(settings.getSingleUsingAccount()))
+    if(singleUsingAccount!=null){
+      if(login(singleUsingAccount))
         useDefault = true;
       else{
         useDefault = false;
@@ -90,7 +100,7 @@ public class CrawlingEngine implements Runnable{
     if(settings.getDelayBeforeRunInMillis()!=0){
       LOG.log(Level.INFO,"explicitly waiting {0} millis");
       try {
-        wait(settings.getDelayBeforeRunInMillis());
+        Thread.sleep(settings.getDelayBeforeRunInMillis());
       } catch (InterruptedException ex) {}
     }
     
@@ -149,7 +159,8 @@ public class CrawlingEngine implements Runnable{
     if(!fapi.loginWithCredentials(acc.getLogin(), acc.getPassword())){
       LOG.log(Level.WARNING, "unable to login");
       acc.setIsBanned(true);
-      accountManager.save();
+      if(accountManager!=null)
+        accountManager.save();
       return false;
     }
     return true;

@@ -5,79 +5,59 @@
  */
 package inria.crawlerv2.engine;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreType;
 import inria.crawlerv2.driver.WebDriverOption;
-import inria.crawlerv2.engine.account.Account;
 import inria.crawlerv2.provider.AttributeName;
-import java.net.URI;
 
 /**
  *
  * @author adychka
  */
 public class CrawlingEngineSettings {
-  
-  /**
-   * the target profile which will be crawled 
-   * for example, https://www.facebook.com/profile.php?id=100001501699606
-   */
-  @JsonIgnore
-  private URI target;
-  
+   
   /**
    * which attributes crawler should collect
    */
-  private AttributeName[] attributes = AttributeName.values();
+  AttributeName[] attributes = AttributeName.values();
   
   /**
    * the upper border for the long delay while crawling attribute
    */
-  private int longWaitMillis = 10000;
+  protected int longWaitMillis = 10000;
   
   /**
    * the upper border for the short delay while crawling attribute
    */
-  private int shortWaitMillis = 5000;
+  protected int shortWaitMillis = 5000;
   
   /**
    * how much seconds should selenium retry if element is not appearing in HTML 
    */
-  private int waitForElemLoadSec = 5;
+  protected int waitForElemLoadSec = 5;
   
   /**
    * the upper border for the delay between crawling the attributes
    * needed to simulate human behavior
    */
-  private int requestDelay = 20000;
+  protected int requestDelay = 20000;
   
   /**
-   * change account after this quantity of crawlings
+   * change login account after this number of crawlings
    */
-  private int changeAccountAfter = 10;
+  protected int changeAccountAfter = 10;
   
   /**
    * explicit wait before start crawling
    */
-  private int delayBeforeRunInMillis = 0;
-  
-  /**
-   * if not null, will be used as single account to login to facebook
-   */
-  @JsonIgnore
-  private Account singleUsingAccount;
-  
+  protected int delayBeforeRunInMillis = 0;
+   
   /**
    * PHANTOM - to run silently, 
    * GECKO to run in visual mode
    */
-  private WebDriverOption webDriverOption = WebDriverOption.PHANTOM;
+  protected WebDriverOption webDriverOption = WebDriverOption.PHANTOM;
 
-  public URI getTarget() {
-    return target;
-  }
-
-  public AttributeName[] getAttributes() {
+  AttributeName[] getAttributes() {
     return attributes;
   }
 
@@ -101,10 +81,6 @@ public class CrawlingEngineSettings {
     return changeAccountAfter;
   }
 
-  public Account getSingleUsingAccount() {
-    return singleUsingAccount;
-  }
-
   public int getDelayBeforeRunInMillis() {
     return delayBeforeRunInMillis;
   }
@@ -122,9 +98,7 @@ public class CrawlingEngineSettings {
   }
   
   
-  private void check(){
-    if(target == null)
-      throw new RuntimeException("you must set target attribute");
+  public void check(){
     if(attributes == null || attributes.length==0)
       throw new RuntimeException("wrong attributes value");
     if(longWaitMillis <=0)
@@ -145,16 +119,6 @@ public class CrawlingEngineSettings {
   
   @JsonIgnoreType
   public class Builder{
-    
-    public Builder setSingleUsingAccount(Account account){
-      CrawlingEngineSettings.this.singleUsingAccount = account;
-      return this;
-    }
-    
-    public Builder setTarget(URI target){
-      CrawlingEngineSettings.this.target = target;
-      return this;
-    }
     
     public Builder setCollectAttributes(AttributeName[] attributes){
       CrawlingEngineSettings.this.attributes = attributes;
