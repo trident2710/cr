@@ -57,7 +57,7 @@ public class CrawlingEngine implements Runnable{
             settings.getWaitForElemLoadSec(), 
             settings.getShortWaitMillis());
     
-    fapi = new FacebookAttributeProvider(target,fpid);
+    fapi = new FacebookAttributeProvider(target,fpid,settings.maxFriendsToCollect);
     this.fc = fc;
     this.object = new JsonObject();
     this.accountManager = accountManager;

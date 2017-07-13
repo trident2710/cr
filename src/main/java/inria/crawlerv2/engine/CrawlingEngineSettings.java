@@ -50,6 +50,11 @@ public class CrawlingEngineSettings {
    * explicit wait before start crawling
    */
   protected int delayBeforeRunInMillis = 0;
+  
+  /**
+   * maximum amount of friends to collect for current profile
+   */
+  protected int maxFriendsToCollect = 1000;
    
   /**
    * PHANTOM - to run silently, 
@@ -88,6 +93,12 @@ public class CrawlingEngineSettings {
   public WebDriverOption getWebDriverOption() {
     return webDriverOption;
   }
+
+  public int getMaxFriendsToCollect() {
+      return maxFriendsToCollect;
+  }
+  
+  
   
   public static Builder getStaticBuilder(){
     return new CrawlingEngineSettings().new Builder();
@@ -101,18 +112,20 @@ public class CrawlingEngineSettings {
   public void check(){
     if(attributes == null || attributes.length==0)
       throw new RuntimeException("wrong attributes value");
-    if(longWaitMillis <=0)
+    if(longWaitMillis <0)
       throw new RuntimeException("wrong longVaitMillis value");
-    if(shortWaitMillis <=0)
+    if(shortWaitMillis <0)
       throw new RuntimeException("wrong shortVaitMillis value");
-    if(waitForElemLoadSec <=0)
+    if(waitForElemLoadSec <0)
       throw new RuntimeException("wrong waitForElemLoadSec value");
-    if(requestDelay <=0)
+    if(requestDelay <0)
       throw new RuntimeException("wrong requestDelay value");
-    if(changeAccountAfter <=0)
+    if(changeAccountAfter <0)
       throw new RuntimeException("wrong changeAccountAfter value");
     if(delayBeforeRunInMillis <0)
       throw new RuntimeException("wrong delayBeforeRunInMillis value");
+    if(maxFriendsToCollect<1)
+      throw new RuntimeException("wrong maxFriendsToCollect value");
     if(webDriverOption == null)
       throw new RuntimeException("wrong webDriverOption value");
   }
@@ -152,6 +165,11 @@ public class CrawlingEngineSettings {
     
     public Builder setDelayBeforeRunInMillis(int delayBeforeRunInMillis){
       CrawlingEngineSettings.this.delayBeforeRunInMillis = delayBeforeRunInMillis;
+      return this;
+    }
+    
+    public Builder setMaxFriendsToCollect(int maxFriendsToCollect){
+      CrawlingEngineSettings.this.maxFriendsToCollect = maxFriendsToCollect;
       return this;
     }
     

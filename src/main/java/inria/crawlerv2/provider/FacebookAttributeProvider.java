@@ -16,6 +16,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -40,10 +41,12 @@ public class FacebookAttributeProvider implements AttributeProvider{
    */
   private URI url;
   private final FacebookPageInformationDriver fpid;
+  private final int maxFriendsToCollect;
 
-  public FacebookAttributeProvider(URI url,FacebookPageInformationDriver driver){
+  public FacebookAttributeProvider(URI url,FacebookPageInformationDriver driver,int maxFriendsToCollect){
     this.url = url;
     this.fpid = driver;
+    this.maxFriendsToCollect = maxFriendsToCollect;
   }
   
   @Override
@@ -148,8 +151,11 @@ public class FacebookAttributeProvider implements AttributeProvider{
     }
     return String.join(" ",Arrays.copyOfRange(items, 1, items.length));
   }
+  
   private List<String> getPageIdsFromUrls(List<String> pageUrls){
     if(pageUrls==null||pageUrls.isEmpty()) return null;
+    Collections.shuffle(pageUrls);
+    pageUrls = pageUrls.subList(0, Math.min(maxFriendsToCollect, pageUrls.size()));
     List<String> ids = new ArrayList<>();
     pageUrls.forEach((u) -> {
       try {
