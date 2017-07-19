@@ -216,7 +216,7 @@ public class BasicFacebookPageDriver {
     public void finish() {
         if (driver != null) {
             driver.manage().deleteAllCookies();
-            driver.close();
+            driver.quit();
         }
 
     }

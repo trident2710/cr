@@ -25,9 +25,16 @@ public class FacebookPageInformationDriver extends BasicFacebookPageDriver {
     private Map<String, String> basicInfoCash;
     private Map<String, String> contactInfoCash;
     private Map<String, String> workEducationCash;
+    
+    /**
+     * maximum amount of friends which will be collected for the profile
+     * necessary to avoid the case of huge amount of friends when crawling could take huge amount of time 
+     */
+    private final int maxFriends;
 
-    public FacebookPageInformationDriver(URI target, WebDriverOption option, int waitElemSec, int shortWaitMillis) {
+    public FacebookPageInformationDriver(URI target, WebDriverOption option, int waitElemSec, int shortWaitMillis, int maxFriends) {
         super(target, option, waitElemSec, shortWaitMillis);
+        this.maxFriends = maxFriends;
         initCash();
     }
 
@@ -184,6 +191,8 @@ public class FacebookPageInformationDriver extends BasicFacebookPageDriver {
         boolean isLoaded;
 
         do {
+            LOG.log(Level.INFO, "scrolled friends down");
+            
             isLoaded = false;
             scrollPage();
             waitForLoad();
@@ -202,7 +211,8 @@ public class FacebookPageInformationDriver extends BasicFacebookPageDriver {
                 LOG.log(Level.WARNING, "unable to find .//ul[@data-pnref='friends']");
             }
 
-        } while (isLoaded);
+        } while (isLoaded&&urls.size()<maxFriends);
+        LOG.log(Level.INFO, "urls size: {0}",urls.size());
         return urls;
     }
 

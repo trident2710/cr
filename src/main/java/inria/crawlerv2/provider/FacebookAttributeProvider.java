@@ -51,7 +51,7 @@ public class FacebookAttributeProvider implements AttributeProvider {
     }
 
     @Override
-    public void getAttribute(AttributeName name, AttributeCallback callback) {
+    public void getAttributeAsync(AttributeName name, AttributeCallback callback) {
         JsonElement response = null;
         Object val = null;
         try {
@@ -209,5 +209,39 @@ public class FacebookAttributeProvider implements AttributeProvider {
     @Override
     public void finishSession() {
         fpid.finish();
+    }
+
+    @Override
+    public JsonElement getAttribute(AttributeName name) throws CollectException{
+        JsonElement response = null;
+        Object val = null;
+        try {
+            val = getAttributeByName(name);
+        } catch (BasicFacebookPageDriver.PageNotFoundException | IllegalArgumentException e) {
+        }
+
+        if (val == null) {
+            throw new CollectException(name);
+        }
+        if (val instanceof String) {
+            String v = (String) val;
+            if (!v.isEmpty()) {
+                response = new JsonPrimitive(v);
+            }
+        }
+        if (val instanceof List) {
+            List<String> v = (List<String>) val;
+            if (!v.isEmpty()) {
+                JsonArray array = new JsonArray();
+                v.forEach((s) -> {
+                    array.add(s);
+                });
+                response = array;
+            }
+        }
+        if (response == null) {
+            throw new CollectException(name);
+        }
+        return response;
     }
 }

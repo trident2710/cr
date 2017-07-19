@@ -58,9 +58,9 @@ public class CrawlingEngineSettings {
     protected int maxFriendsToCollect = 10000;
 
     /**
-     * stop scrolling down the list of friends after this amount
+     * stop scrolling down the list of friends after this amount of friends
      */
-    protected int maxFriendsToScroll = 10000;
+    protected int maxFriendsToDiscover = 10000;
 
     /**
      * PHANTOM - to run silently, GECKO to run in visual mode
@@ -103,8 +103,8 @@ public class CrawlingEngineSettings {
         return maxFriendsToCollect;
     }
 
-    public int getMaxFriendsToScroll() {
-        return maxFriendsToScroll;
+    public int getMaxFriendsToDiscover() {
+        return maxFriendsToDiscover;
     }
 
     public static Builder getStaticBuilder() {
@@ -139,6 +139,12 @@ public class CrawlingEngineSettings {
         }
         if (maxFriendsToCollect < 1) {
             throw new RuntimeException("wrong maxFriendsToCollect value");
+        }
+        if (maxFriendsToDiscover< 1) {
+            throw new RuntimeException("wrong maxFriendsToScroll value");
+        }
+        if (maxFriendsToDiscover< maxFriendsToCollect) {
+            throw new RuntimeException("maxFriendsToCollect could not be greater than maxFriendsToDiscover");
         }
         if (webDriverOption == null) {
             throw new RuntimeException("wrong webDriverOption value");
@@ -186,6 +192,11 @@ public class CrawlingEngineSettings {
 
         public Builder setMaxFriendsToCollect(int maxFriendsToCollect) {
             CrawlingEngineSettings.this.maxFriendsToCollect = maxFriendsToCollect;
+            return this;
+        }
+        
+        public Builder setMaxFriendsToDiscover(int maxFriendsToDiscover) {
+            CrawlingEngineSettings.this.maxFriendsToDiscover = maxFriendsToDiscover;
             return this;
         }
 

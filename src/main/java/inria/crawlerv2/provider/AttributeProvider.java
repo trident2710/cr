@@ -24,12 +24,19 @@ public interface AttributeProvider {
     boolean loginWithCredentials(String username, String password);
 
     /**
-     * get the attribute from the facebook account
+     * get the attribute from the facebook account asyncroniously
      *
      * @param name - which attribute should be collected
      * @param callback
      */
-    void getAttribute(AttributeName name, AttributeCallback callback);
+    void getAttributeAsync(AttributeName name, AttributeCallback callback);
+    
+    /**
+     * get the attribute from the facebook account
+     * @param name
+     * @return 
+     */
+    JsonElement getAttribute(AttributeName name) throws CollectException;
 
     /**
      * change the target url to the form: facebook.com/profile.php?id=123124
@@ -66,6 +73,15 @@ public interface AttributeProvider {
          */
         void onError(AttributeName name, String description);
 
+    }
+    
+    /**
+     * throws when attribute provider cannot collect attribute
+     */
+    public static class CollectException extends Exception{
+        public CollectException(AttributeName name){
+            super("unable to collect attribute: "+name.getName());
+        }
     }
 
 }
