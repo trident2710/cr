@@ -187,6 +187,13 @@ public class BasicFacebookPageDriver {
             bodyheight_afterScroll = (Long) executor.executeScript("return document.body.scrollHeight;");
         }
     }
+    /**
+     * scroll the page to the top
+     */
+    protected void scrollPageUp() {
+        JavascriptExecutor executor = (JavascriptExecutor) driver;
+        executor.executeScript("return window.scrollTo(document.body.scrollHeight,0);");
+    }
 
     /**
      * wait about MAX_SHORT_WAIT_MILLIS but not less than 2sec
@@ -214,10 +221,16 @@ public class BasicFacebookPageDriver {
     }
 
     public void finish() {
-        if (driver != null) {
-            driver.manage().deleteAllCookies();
-            driver.quit();
+        try {
+            if (driver != null) {
+                driver.manage().deleteAllCookies();
+            }
+        } catch (Exception e) {
         }
+        finally{
+             driver.quit();
+        }
+        
 
     }
 

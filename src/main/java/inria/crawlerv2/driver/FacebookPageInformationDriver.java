@@ -12,6 +12,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebElement;
@@ -22,15 +23,15 @@ import org.openqa.selenium.WebElement;
  */
 public class FacebookPageInformationDriver extends BasicFacebookPageDriver {
 
-    private Map<String, String> basicInfoCash;
-    private Map<String, String> contactInfoCash;
-    private Map<String, String> workEducationCash;
-    
+    protected Map<String, String> basicInfoCash;
+    protected Map<String, String> contactInfoCash;
+    protected Map<String, String> workEducationCash;
+          
     /**
      * maximum amount of friends which will be collected for the profile
      * necessary to avoid the case of huge amount of friends when crawling could take huge amount of time 
      */
-    private final int maxFriends;
+    protected final int maxFriends;
 
     public FacebookPageInformationDriver(URI target, WebDriverOption option, int waitElemSec, int shortWaitMillis, int maxFriends) {
         super(target, option, waitElemSec, shortWaitMillis);
@@ -70,18 +71,10 @@ public class FacebookPageInformationDriver extends BasicFacebookPageDriver {
      *
      * @return
      */
-    public String getBirthDate() {
-        return getBasicInfoByKey("date of birth");
+    public String getBirthday() {
+        return getBasicInfoByKey("birthday")==null?getBasicInfoByKey("date of birth")+" "+getBasicInfoByKey("year of birth"):getBasicInfoByKey("birthday");
     }
-
-    /**
-     * get the profile birth year
-     *
-     * @return
-     */
-    public String getBirthYear() {
-        return getBasicInfoByKey("year of birth");
-    }
+    
 
     /**
      * get the profile gender
@@ -116,7 +109,7 @@ public class FacebookPageInformationDriver extends BasicFacebookPageDriver {
      * @return
      */
     public String getPolitic() {
-        return getBasicInfoByKey("political Views");
+        return getBasicInfoByKey("political views");
     }
 
     /**
@@ -178,7 +171,7 @@ public class FacebookPageInformationDriver extends BasicFacebookPageDriver {
         String val = getEduWorkInfoByKey("education");
         return val != null ? Arrays.asList(val.split("\\|")).stream().distinct().collect(Collectors.toList()) : null;
     }
-
+    
     /**
      * get the list of URLs of profiles which are the friends of the target
      *
@@ -188,12 +181,12 @@ public class FacebookPageInformationDriver extends BasicFacebookPageDriver {
         loadUrl(new String[]{"sk=friends"}, new String[]{"friends"});
         List<String> urls = new ArrayList<>();
         Map<WebElement, Boolean> friends = new HashMap<>();
-        boolean isLoaded;
-
+        boolean isFinished;
+        int loadingTries = 0;
         do {
             LOG.log(Level.INFO, "scrolled friends down");
             
-            isLoaded = false;
+            isFinished = true;
             scrollPage();
             waitForLoad();
             randomShortWait();
@@ -204,34 +197,40 @@ public class FacebookPageInformationDriver extends BasicFacebookPageDriver {
                     setWaitForElementLoadEnabled(false);
                     updateFriendsMap(upd_friends, friends);
                     urls.addAll(collectUrlsFromFriendsMap(friends));
-                    isLoaded = true;
+                    isFinished = false;
+                    loadingTries=0;
                     setWaitForElementLoadEnabled(true);
                 }
             } catch (Exception e) {
                 LOG.log(Level.WARNING, "unable to find .//ul[@data-pnref='friends']");
             }
+            if(isFinished){
+                LOG.log(Level.INFO, "list was not updated, trying once more");
+                scrollPageUp();
+                loadingTries++;
+            }
 
-        } while (isLoaded&&urls.size()<maxFriends);
+        } while (loadingTries<3&&urls.size()<maxFriends);
         LOG.log(Level.INFO, "urls size: {0}",urls.size());
         return urls;
     }
 
-    private String getBasicInfoByKey(String key) {
+    protected String getBasicInfoByKey(String key) {
         Map<String, String> basicInfo = basicInfoCash.isEmpty() ? getBasicInformation() : basicInfoCash;
         return basicInfo != null && basicInfo.containsKey(key) ? basicInfo.get(key).replaceFirst("\\|", "") : null;
     }
 
-    private String getContactInfoByKey(String key) {
+    protected String getContactInfoByKey(String key) {
         Map<String, String> contactInfo = contactInfoCash.isEmpty() ? getContactInformation() : contactInfoCash;
         return contactInfo != null && contactInfo.containsKey(key) ? contactInfo.get(key).replaceFirst("\\|", "") : null;
     }
 
-    private String getEduWorkInfoByKey(String key) {
+    protected String getEduWorkInfoByKey(String key) {
         Map<String, String> contactInfo = workEducationCash.isEmpty() ? getWorkEducationInformation() : workEducationCash;
         return contactInfo != null && contactInfo.containsKey(key) ? contactInfo.get(key).replaceFirst("\\|", "") : null;
     }
 
-    private Map<String, String> getContactInformation() {
+    protected Map<String, String> getContactInformation() {
         loadUrl(new String[]{"sk=about", "section=contact-info"}, new String[]{"contact-info"});
 
         try {
@@ -256,6 +255,7 @@ public class FacebookPageInformationDriver extends BasicFacebookPageDriver {
                                 attributes.put("address", val);
                             }
                             break;
+                        case "email address":
                         case "email":
                             val = getEmailAddress(element);
                             if (val != null) {
@@ -279,7 +279,7 @@ public class FacebookPageInformationDriver extends BasicFacebookPageDriver {
         return null;
     }
 
-    private String getMobilePhones(WebElement element) {
+    protected String getMobilePhones(WebElement element) {
         try {
             String attrValue = "";
             List<WebElement> elements;
@@ -298,26 +298,41 @@ public class FacebookPageInformationDriver extends BasicFacebookPageDriver {
         return null;
     }
 
-    private String getEmailAddress(WebElement element) {
+    protected String getEmailAddress(WebElement element) {
         try {
             String attrValue = "";
             List<WebElement> elements;
             elements = element.findElements(By.xpath("./div/div/div/div/span/ul/li"));
             for (WebElement el : elements) {
                 try {
-                    attrValue += "|" + (el.findElement(By.xpath("./a/span")).getText());
+                    String v = (el.findElement(By.xpath("./a/span")).getText());
+                    if(v==null||v.isEmpty()) v = (el.findElement(By.xpath("./a/span/span")).getText());
+                    if(v==null||v.isEmpty()) v = el.findElement(By.xpath("./a")).getAttribute("href").replace("%40", "@").replace(":mailto", "");
+                    attrValue += "|" + v;
                 } catch (Exception e) {
-                    LOG.log(Level.WARNING, "unable to get address from basic info");
+                    LOG.log(Level.WARNING, "unable to get email from basic info");
+                }
+            }
+            if(attrValue.isEmpty()){
+                elements = element.findElements(By.xpath("./div/div/div/div/span/ul/li/ul/li"));
+                for (WebElement el : elements) {
+                    try {
+                        String v = (el.findElement(By.xpath("./a/span/span")).getText());
+                        if(v==null||v.isEmpty()) v = el.findElement(By.xpath("./a")).getAttribute("href").replace("%40", "@").replace(":mailto", "");
+                        attrValue += "|" + v;
+                    } catch (Exception e) {
+                        LOG.log(Level.WARNING, "unable to get email from basic info");
+                    }
                 }
             }
             return !attrValue.isEmpty() ? attrValue : null;
         } catch (Exception e) {
-            LOG.log(Level.WARNING, "unable to find address");
+            LOG.log(Level.WARNING, "unable to find email");
         }
         return null;
     }
 
-    private String getAddress(WebElement element) {
+    protected String getAddress(WebElement element) {
         try {
             String attrValue = "";
             List<WebElement> elements;
@@ -336,7 +351,7 @@ public class FacebookPageInformationDriver extends BasicFacebookPageDriver {
         return null;
     }
 
-    private void updateFriendsMap(List<WebElement> list, Map<WebElement, Boolean> map) {
+    protected void updateFriendsMap(List<WebElement> list, Map<WebElement, Boolean> map) {
         for (WebElement element : list) {
             if (!map.containsKey(element)) {
                 map.put(element, false);
@@ -344,7 +359,7 @@ public class FacebookPageInformationDriver extends BasicFacebookPageDriver {
         }
     }
 
-    private List<String> collectUrlsFromFriendsMap(Map<WebElement, Boolean> map) {
+    protected List<String> collectUrlsFromFriendsMap(Map<WebElement, Boolean> map) {
         List<String> urls = new ArrayList<>();
         for (Map.Entry<WebElement, Boolean> e : map.entrySet()) {
             if (!e.getValue()) {
@@ -355,7 +370,7 @@ public class FacebookPageInformationDriver extends BasicFacebookPageDriver {
         return urls;
     }
 
-    private List<String> getFriendUrlsFromContainer(WebElement container) {
+    protected List<String> getFriendUrlsFromContainer(WebElement container) {
         List<String> elems = new ArrayList<>();
         List<WebElement> elements;
         try {
@@ -375,7 +390,7 @@ public class FacebookPageInformationDriver extends BasicFacebookPageDriver {
         return elems;
     }
 
-    private Map<String, String> getBasicInformation() {
+    protected Map<String, String> getBasicInformation() {
         loadUrl(new String[]{"sk=about", "section=contact-info"}, new String[]{"contact-info"});
         setWaitForElementLoadEnabled(false);
         Map<String, String> map = new HashMap<>();
@@ -407,13 +422,13 @@ public class FacebookPageInformationDriver extends BasicFacebookPageDriver {
         return map;
     }
 
-    private Map<String, String> getWorkEducationInformation() {
+    protected Map<String, String> getWorkEducationInformation() {
         loadUrl(new String[]{"sk=about", "section=education"}, new String[]{"education"});
         setWaitForElementLoadEnabled(false);
         Map<String, String> map = new HashMap<>();
         List<WebElement> elements;
         try {
-            WebElement work = driver.findElement(By.xpath(".//div[@id='pagelet_eduwork']//div[@data-pnref='work']/ul"));
+            WebElement work = driver.findElement(By.xpath(".//div[@id='pagelet_eduwork' or @id='pagelet_edit_eduwork']//div[@data-pnref='work']/ul"));
             String val = getEduWorkListItems(work);
             if (val != null) {
                 map.put("work", val);
@@ -422,7 +437,7 @@ public class FacebookPageInformationDriver extends BasicFacebookPageDriver {
             LOG.log(Level.WARNING, "unable to find work pagelet");
         }
         try {
-            WebElement edu = driver.findElement(By.xpath(".//div[@id='pagelet_eduwork']//div[@data-pnref='edu']/ul"));
+            WebElement edu = driver.findElement(By.xpath(".//div[@id='pagelet_eduwork' or @id='pagelet_edit_eduwork']//div[@data-pnref='edu']/ul"));
             String val = getEduWorkListItems(edu);
             if (val != null) {
                 map.put("education", val);
@@ -438,7 +453,7 @@ public class FacebookPageInformationDriver extends BasicFacebookPageDriver {
         return map;
     }
 
-    private String getEduWorkListItems(WebElement element) {
+    protected String getEduWorkListItems(WebElement element) {
         List<WebElement> elements;
         String attrValue = "";
         try {
@@ -455,7 +470,7 @@ public class FacebookPageInformationDriver extends BasicFacebookPageDriver {
         return !attrValue.isEmpty() ? attrValue : null;
     }
 
-    private void initCash() {
+    protected void initCash() {
         basicInfoCash = new HashMap<>();
         contactInfoCash = new HashMap<>();
         workEducationCash = new HashMap<>();

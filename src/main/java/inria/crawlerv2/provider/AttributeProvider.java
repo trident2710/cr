@@ -13,6 +13,8 @@ import com.google.gson.JsonElement;
  * @author adychka
  */
 public interface AttributeProvider {
+    String FIND_ID_URL = "https://findmyfbid.com/";
+    String TARGET_WITH_ID_TEMPLATE = "https://www.facebook.com/profile.php?id=";
 
     /**
      * login to facebook with specified credentials

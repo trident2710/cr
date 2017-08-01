@@ -7,18 +7,14 @@ package inria.crawlerv2.engine;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import inria.crawlerv2.driver.FacebookPageInformationDriver;
 import inria.crawlerv2.engine.account.Account;
 import inria.crawlerv2.engine.account.AccountManager;
 import inria.crawlerv2.provider.AttributeName;
 import inria.crawlerv2.provider.AttributeProvider;
-import inria.crawlerv2.provider.FacebookAttributeProvider;
 import java.net.URI;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.Random;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -29,49 +25,23 @@ import java.util.logging.Logger;
  *
  * @author adychka
  */
-public class CrawlingEngine implements Runnable {
-
-    /**
-     * for generating random time intervals for the scrapping
-     */
-    private Random random;
-
-    private FacebookAttributeProvider fapi;
+public class CrawlingRunable extends CrawlingInstance implements Runnable {
 
     private FinishCallback fc;
 
-    private static final Logger LOG = Logger.getLogger(CrawlingEngine.class.getName());
+    private static final Logger LOG = Logger.getLogger(CrawlingRunable.class.getName());
 
-    private JsonObject object;
-
-    private AccountManager accountManager;
-
-    private CrawlingEngineSettings settings;
-
-    private Account singleUsingAccount;
-
-    public CrawlingEngine(AccountManager accountManager, CrawlingEngineSettings settings, URI target, FinishCallback fc) {
-        random = new Random();
-        FacebookPageInformationDriver fpid = new FacebookPageInformationDriver(
-                target,
-                settings.getWebDriverOption(),
-                settings.getWaitForElemLoadSec(),
-                settings.getShortWaitMillis(),
-                settings.getMaxFriendsToDiscover());
-
-        fapi = new FacebookAttributeProvider(target, fpid, settings.getMaxFriendsToCollect());
+    public CrawlingRunable(AccountManager accountManager, CrawlingInstanceSettings settings, URI target, FinishCallback fc) {
+        super(accountManager,settings,target);
         this.fc = fc;
-        this.object = new JsonObject();
-        this.accountManager = accountManager;
-        this.settings = settings;
     }
 
-    public CrawlingEngine(AccountManager accountManager, CrawlingEngineSettings settings, URI target, Account singleUsingAccount, FinishCallback fc) {
+    public CrawlingRunable(AccountManager accountManager, CrawlingInstanceSettings settings, URI target, Account singleUsingAccount, FinishCallback fc) {
         this(accountManager, settings, target, fc);
         this.singleUsingAccount = singleUsingAccount;
     }
 
-    public CrawlingEngine(CrawlingEngineSettings settings, URI target, Account singleUsingAccount, FinishCallback fc) {
+    public CrawlingRunable(CrawlingInstanceSettings settings, URI target, Account singleUsingAccount, FinishCallback fc) {
         this(null, settings, target, singleUsingAccount, fc);
     }
 
@@ -85,7 +55,7 @@ public class CrawlingEngine implements Runnable {
             } else {
                 useDefault = false;
                 LOG.log(Level.SEVERE, "unable to login with provided account");
-                finish(null);
+                finish();
                 return;
             }
         }
@@ -95,7 +65,7 @@ public class CrawlingEngine implements Runnable {
                 login();
             } catch (NoWorkingAccountsException e) {
                 LOG.log(Level.SEVERE, "no working accounts left");
-                finish(null);
+                finish();
                 return;
             }
         }
@@ -117,7 +87,7 @@ public class CrawlingEngine implements Runnable {
                 crawlBlock(block);
             }
         }
-        finish(object);
+        finish();
     }
 
     private void crawlBlock(AttributeName[] block) {
@@ -150,58 +120,15 @@ public class CrawlingEngine implements Runnable {
         }
     };
 
-    private void login() throws NoWorkingAccountsException {
-        if (accountManager.getWorkingAccounts().isEmpty()) {
-            throw new NoWorkingAccountsException();
-        }
-
-        Account acc = accountManager.getRandomWorkingAccount();
-        if (!login(acc)) {
-            login();
-        }
-    }
-
-    private boolean login(Account acc) {
-        if (!fapi.loginWithCredentials(acc.getLogin(), acc.getPassword())) {
-            LOG.log(Level.WARNING, "unable to login");
-            acc.setIsBanned(true);
-            if (accountManager != null) {
-                accountManager.save();
-            }
-            return false;
-        }
-        return true;
-    }
-
-    private void finish(JsonObject object) {
+    @Override
+    protected void finish() {
         if (object == null) {
             LOG.log(Level.SEVERE, "impossible to collect data");
         }
         fapi.finishSession();
         fc.onFinished(object);
     }
-
-    private class NoWorkingAccountsException extends Exception {
-    };
-
-    /**
-     * certain attributes are located on the same pages
-     *
-     * @return the attribute groups (which are on the same page) to overcome
-     * unnecessary waiting
-     */
-    private List<AttributeName[]> getAttributesByPages() {
-        List<AttributeName[]> list = new ArrayList<>();
-        list.add(new AttributeName[]{AttributeName.ID});
-        list.add(new AttributeName[]{AttributeName.FIRST_NAME, AttributeName.LAST_NAME});
-        list.add(new AttributeName[]{AttributeName.FRIEND_IDS});
-        list.add(new AttributeName[]{AttributeName.BIRTH_DATE, AttributeName.BIRTH_YEAR, AttributeName.GENDER,
-            AttributeName.GENDER_INTERESTS, AttributeName.POLITICAL_VIEW, AttributeName.RELIGIOUS_VIEW, AttributeName.PHONES,
-            AttributeName.EMAIL_ADDRESS, AttributeName.LANGUAGES, AttributeName.ADDRESS});
-        list.add(new AttributeName[]{AttributeName.WORK_IDS, AttributeName.EDUCATION_IDS});
-        return list;
-    }
-
+  
     /**
      * called when CrawlingEngine collected all information
      */

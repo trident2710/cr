@@ -13,12 +13,12 @@ import inria.crawlerv2.provider.AttributeName;
  *
  * @author adychka
  */
-public class CrawlingEngineSettings {
+public class CrawlingInstanceSettings {
 
     /**
      * which attributes crawler should collect
      */
-    AttributeName[] attributes = AttributeName.values();
+    protected AttributeName[] attributes = AttributeName.values();
 
     /**
      * the upper border for the long delay while crawling attribute
@@ -67,7 +67,7 @@ public class CrawlingEngineSettings {
      */
     protected WebDriverOption webDriverOption = WebDriverOption.PHANTOM;
 
-    AttributeName[] getAttributes() {
+    public AttributeName[] getAttributes() {
         return attributes;
     }
 
@@ -107,8 +107,12 @@ public class CrawlingEngineSettings {
         return maxFriendsToDiscover;
     }
 
+    public void setAttributes(AttributeName[] attributes) {
+        this.attributes = attributes;
+    }
+    
     public static Builder getStaticBuilder() {
-        return new CrawlingEngineSettings().new Builder();
+        return new CrawlingInstanceSettings().new Builder();
     }
 
     public Builder getBuilder() {
@@ -156,58 +160,58 @@ public class CrawlingEngineSettings {
     public class Builder {
 
         public Builder setCollectAttributes(AttributeName[] attributes) {
-            CrawlingEngineSettings.this.attributes = attributes;
+            CrawlingInstanceSettings.this.attributes = attributes;
             return this;
         }
 
         public Builder setLongWaitMillis(int longWaitMillis) {
-            CrawlingEngineSettings.this.longWaitMillis = longWaitMillis;
+            CrawlingInstanceSettings.this.longWaitMillis = longWaitMillis;
             return this;
         }
 
         public Builder setShortWaitMillis(int shortWaitMillis) {
-            CrawlingEngineSettings.this.shortWaitMillis = shortWaitMillis;
+            CrawlingInstanceSettings.this.shortWaitMillis = shortWaitMillis;
             return this;
         }
 
         public Builder setWaitForElemLoadSec(int waitForElemLoadSec) {
-            CrawlingEngineSettings.this.waitForElemLoadSec = waitForElemLoadSec;
+            CrawlingInstanceSettings.this.waitForElemLoadSec = waitForElemLoadSec;
             return this;
         }
 
         public Builder setRequestDelay(int requestDelay) {
-            CrawlingEngineSettings.this.requestDelay = requestDelay;
+            CrawlingInstanceSettings.this.requestDelay = requestDelay;
             return this;
         }
 
         public Builder setChangeAccountAfter(int changeAccountAfter) {
-            CrawlingEngineSettings.this.changeAccountAfter = changeAccountAfter;
+            CrawlingInstanceSettings.this.changeAccountAfter = changeAccountAfter;
             return this;
         }
 
         public Builder setDelayBeforeRunInMillis(int delayBeforeRunInMillis) {
-            CrawlingEngineSettings.this.delayBeforeRunInMillis = delayBeforeRunInMillis;
+            CrawlingInstanceSettings.this.delayBeforeRunInMillis = delayBeforeRunInMillis;
             return this;
         }
 
         public Builder setMaxFriendsToCollect(int maxFriendsToCollect) {
-            CrawlingEngineSettings.this.maxFriendsToCollect = maxFriendsToCollect;
+            CrawlingInstanceSettings.this.maxFriendsToCollect = maxFriendsToCollect;
             return this;
         }
         
         public Builder setMaxFriendsToDiscover(int maxFriendsToDiscover) {
-            CrawlingEngineSettings.this.maxFriendsToDiscover = maxFriendsToDiscover;
+            CrawlingInstanceSettings.this.maxFriendsToDiscover = maxFriendsToDiscover;
             return this;
         }
 
         public Builder setWebDriverOption(WebDriverOption option) {
-            CrawlingEngineSettings.this.webDriverOption = option;
+            CrawlingInstanceSettings.this.webDriverOption = option;
             return this;
         }
 
-        public CrawlingEngineSettings build() {
-            CrawlingEngineSettings.this.check();
-            return CrawlingEngineSettings.this;
+        public CrawlingInstanceSettings build() {
+            CrawlingInstanceSettings.this.check();
+            return CrawlingInstanceSettings.this;
         }
     }
 

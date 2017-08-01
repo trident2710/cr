@@ -7,11 +7,16 @@ package inria.crawlerv2.provider;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonPrimitive;
 import com.google.gson.JsonSyntaxException;
+import inria.crawlerv2.driver.AttributeVisibility;
 import inria.crawlerv2.driver.BasicFacebookPageDriver;
 import inria.crawlerv2.driver.FacebookPageInformationDriver;
+import inria.crawlerv2.driver.FacebookSelfPageInformationDriver;
+import static inria.crawlerv2.provider.AttributeProvider.FIND_ID_URL;
+import static inria.crawlerv2.provider.AttributeProvider.TARGET_WITH_ID_TEMPLATE;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
@@ -26,33 +31,30 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 
 /**
- * implementation of facebook attribute provider
  *
  * @author adychka
  */
-public class FacebookAttributeProvider implements AttributeProvider {
-
-   
+public class FacebookAttributeVisibilityProvider implements AttributeProvider{
+    
     private static final Logger LOG = Logger.getLogger(FacebookAttributeProvider.class.getName());
-
-    /**
-     * url of user facebook page, for example,
-     * https://www.facebook.com/profile.php?id=6456
-     */
+    private final FacebookSelfPageInformationDriver fpid;
     private URI url;
-    private final FacebookPageInformationDriver fpid;
-    private final int maxItemsToCollect;
-
-    public FacebookAttributeProvider(URI url, FacebookPageInformationDriver driver, int maxItemsToCollect) {
+    private final int maxItemsToCollect = 10;
+    
+    public FacebookAttributeVisibilityProvider(URI url, FacebookSelfPageInformationDriver driver) {
         this.url = url;
         this.fpid = driver;
-        this.maxItemsToCollect = maxItemsToCollect;
+    }
+
+    @Override
+    public boolean loginWithCredentials(String username, String password) {
+        return this.fpid.start(username, password);
     }
 
     @Override
     public void getAttributeAsync(AttributeName name, AttributeCallback callback) {
         JsonElement response = null;
-        Object val = null;
+        Object[] val = null;
         try {
             val = getAttributeByName(name);
         } catch (BasicFacebookPageDriver.PageNotFoundException | IllegalArgumentException e) {
@@ -62,14 +64,14 @@ public class FacebookAttributeProvider implements AttributeProvider {
             callback.onError(name, "unable to get response");
             return;
         }
-        if (val instanceof String) {
-            String v = (String) val;
+        if (val[0] instanceof String) {
+            String v = (String) val[0];
             if (!v.isEmpty()) {
                 response = new JsonPrimitive(v);
             }
         }
-        if (val instanceof List) {
-            List<String> v = (List<String>) val;
+        if (val[0] instanceof List) {
+            List<String> v = (List<String>) val[0];
             if (!v.isEmpty()) {
                 JsonArray array = new JsonArray();
                 v.forEach((s) -> {
@@ -82,54 +84,99 @@ public class FacebookAttributeProvider implements AttributeProvider {
             callback.onError(name, "unable to get response");
             return;
         }
-        callback.onAttributeCollected(name, response);
+        JsonObject res = new JsonObject();
+        res.add("value", response);
+        res.addProperty("visibility", (String)val[1]);
+        callback.onAttributeCollected(name, res);
     }
 
-    private Object getAttributeByName(AttributeName name) {
-        switch (name) {
-            case ID:
-                return collectId();
-            case FIRST_NAME:
-                return getFirstName();
-            case LAST_NAME:
-                return getLastName();
-            case FRIEND_IDS:
-                return getPageIdsFromUrls(fpid.getFriends());
-            case BIRTHDAY:
-                return fpid.getBirthday();
-            case RELIGIOUS_VIEW:
-                return fpid.getReligion();
-            case POLITICAL_VIEW:
-                return fpid.getPolitic();
-            case GENDER:
-                return fpid.getGender();
-            case GENDER_INTERESTS:
-                return fpid.getGenderInterest();
-            case LANGUAGES:
-                return fpid.getLanguages();
-            case PHONES:
-                return fpid.getMobilePhones();
-            case ADDRESS:
-                return fpid.getAddress();
-            case EMAIL_ADDRESS:
-                return fpid.getEmailAddress();
-            case WORK_IDS:
-                return getPageIdsFromUrls(fpid.getWorks());
-            case EDUCATION_IDS:
-                return getPageIdsFromUrls(fpid.getEducations());
-            default:
-                throw new IllegalArgumentException("unsupported attribute");
+    @Override
+    public JsonElement getAttribute(AttributeName name) throws CollectException {
+        JsonElement response = null;
+        Object[] val = null;
+        try {
+            val = getAttributeByName(name);
+        } catch (BasicFacebookPageDriver.PageNotFoundException | IllegalArgumentException e) {
+            e.printStackTrace();
+        }
+
+        if (val == null) {
+            throw new CollectException(name);
+        }
+        if (val[0] instanceof String) {
+            String v = (String) val[0];
+            if (!v.isEmpty()) {
+                response = new JsonPrimitive(v);
+            }
+        }
+        if (val[0] instanceof List) {
+            List<String> v = (List<String>) val[0];
+            if (!v.isEmpty()) {
+                JsonArray array = new JsonArray();
+                v.forEach((s) -> {
+                    array.add(s);
+                });
+                response = array;
+            }
+        }
+        if (response == null) {
+            throw new CollectException(name);
+        }
+        JsonObject res = new JsonObject();
+        res.add("value", response);
+        res.addProperty("visibility", (String)val[1]);
+        return res;
+    }
+
+    @Override
+    public void transformTargetWithId(String id) {
+        try {
+            this.url = new URI(TARGET_WITH_ID_TEMPLATE + id);
+            this.fpid.setTarget(url);
+        } catch (URISyntaxException ex) {
         }
     }
 
-    public URI getUrl() {
-        return url;
+    @Override
+    public void finishSession() {
+        fpid.finish();
     }
-
-    public void setUrl(URI url) {
-        this.url = url;
+    
+    private Object[] getAttributeByName(AttributeName name) {
+        switch (name) {
+            case ID:
+                return new Object[]{collectId(),AttributeVisibility.PUBLIC.name()};
+            case FIRST_NAME:
+                return new Object[]{getFirstName(),AttributeVisibility.PUBLIC.name()};
+            case LAST_NAME:
+                return new Object[]{getLastName(),AttributeVisibility.PUBLIC.name()};
+            case BIRTHDAY:
+                return new Object[]{fpid.getBirthday(),fpid.getBirthdayVisibility()};
+            case RELIGIOUS_VIEW:
+                return new Object[]{fpid.getReligion(),fpid.getReligionVisibility()};
+            case POLITICAL_VIEW:
+                return new Object[]{fpid.getPolitic(),fpid.getPoliticVisibility()};
+            case GENDER:
+                return new Object[]{fpid.getGender(),AttributeVisibility.PUBLIC.name()};
+            case GENDER_INTERESTS:
+                return new Object[]{fpid.getGenderInterest(),fpid.getGenderInterestVisibility()};
+            case LANGUAGES:
+                return new Object[]{fpid.getLanguages(),fpid.getLanguagesVisibility()};
+            case PHONES:
+                return new Object[]{fpid.getMobilePhones(),fpid.getMobilePhonesVisibility()};
+            case ADDRESS:
+                return new Object[]{fpid.getAddress(),fpid.getAddressVisibility()};
+            case EMAIL_ADDRESS:
+                return new Object[]{fpid.getEmailAddress(),fpid.getEmailAddressVisibility()};
+            case WORK_IDS:
+                return new Object[]{getPageIdsFromUrls(fpid.getWorks()),fpid.getWorksVisibility()};
+            case EDUCATION_IDS:
+                return new Object[]{getPageIdsFromUrls(fpid.getEducations()),fpid.getEducationsVisibility()};
+            default:
+                return null;
+        }
     }
-
+    
     private String collectId() {
         return collectId(url.toString());
     }
@@ -153,7 +200,7 @@ public class FacebookAttributeProvider implements AttributeProvider {
         }
         return null;
     }
-
+    
     private String getFirstName() {
         String name = fpid.getName();
         return name != null ? name.split(" ")[0] : name;
@@ -170,8 +217,8 @@ public class FacebookAttributeProvider implements AttributeProvider {
         }
         return String.join(" ", Arrays.copyOfRange(items, 1, items.length));
     }
-
-    private List<String> getPageIdsFromUrls(List<String> pageUrls) {
+    
+     private List<String> getPageIdsFromUrls(List<String> pageUrls) {
         if (pageUrls == null || pageUrls.isEmpty()) {
             return null;
         }
@@ -188,57 +235,5 @@ public class FacebookAttributeProvider implements AttributeProvider {
         });
         return ids;
     }
-
-    @Override
-    public boolean loginWithCredentials(String username, String password) {
-        return this.fpid.start(username, password);
-    }
-
-    @Override
-    public void transformTargetWithId(String id) {
-        try {
-            this.url = new URI(TARGET_WITH_ID_TEMPLATE + id);
-            this.fpid.setTarget(url);
-        } catch (URISyntaxException ex) {
-        }
-    }
-
-    @Override
-    public void finishSession() {
-        fpid.finish();
-    }
-
-    @Override
-    public JsonElement getAttribute(AttributeName name) throws CollectException{
-        JsonElement response = null;
-        Object val = null;
-        try {
-            val = getAttributeByName(name);
-        } catch (BasicFacebookPageDriver.PageNotFoundException | IllegalArgumentException e) {
-        }
-
-        if (val == null) {
-            throw new CollectException(name);
-        }
-        if (val instanceof String) {
-            String v = (String) val;
-            if (!v.isEmpty()) {
-                response = new JsonPrimitive(v);
-            }
-        }
-        if (val instanceof List) {
-            List<String> v = (List<String>) val;
-            if (!v.isEmpty()) {
-                JsonArray array = new JsonArray();
-                v.forEach((s) -> {
-                    array.add(s);
-                });
-                response = array;
-            }
-        }
-        if (response == null) {
-            throw new CollectException(name);
-        }
-        return response;
-    }
+    
 }
