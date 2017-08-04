@@ -72,7 +72,14 @@ public class FacebookPageInformationDriver extends BasicFacebookPageDriver {
      * @return
      */
     public String getBirthday() {
-        return getBasicInfoByKey("birthday")==null?getBasicInfoByKey("date of birth")+" "+getBasicInfoByKey("year of birth"):getBasicInfoByKey("birthday");
+        String val = getBasicInfoByKey("birthday");
+        if(val == null||val.isEmpty()){
+            String s = getBasicInfoByKey("date of birth");
+            if(s!=null) val+=s;
+            s = getBasicInfoByKey("year of birth");
+            if(s!=null) val+=" "+s;
+        }
+        return val;
     }
     
 
