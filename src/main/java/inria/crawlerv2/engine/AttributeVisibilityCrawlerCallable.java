@@ -60,7 +60,7 @@ public class AttributeVisibilityCrawlerCallable implements Callable<JsonObject>{
             }
             return object;
         } catch (Exception e) {
-            LOG.log(Level.WARNING,"exception raised while getting attribute visibility");
+            LOG.log(Level.WARNING,"exception raised while getting attribute visibility",e);
             return object;
         } finally{
             ap.finishSession();
